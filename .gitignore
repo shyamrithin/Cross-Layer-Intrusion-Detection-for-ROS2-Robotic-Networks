@@ -1,0 +1,17 @@
+# ROS 2 / colcon
+build/
+install/
+log/
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+# session data
+physguard_session_*.csv
+wire_metrics_*.csv
+*.pcapng
+# OS / editor
+.DS_Store
+*.swp
+.vscode/
+.idea/

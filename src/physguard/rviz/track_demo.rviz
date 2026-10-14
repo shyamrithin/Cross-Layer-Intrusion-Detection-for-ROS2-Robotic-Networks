@@ -1,0 +1,64 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+    Help Height: 0
+  - Class: rviz_common/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 1
+      Plane Cell Count: 16
+      Color: 90; 95; 100
+      Reference Frame: <Fixed Frame>
+      Offset:
+        X: 0
+        Y: 2
+        Z: 0
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Track and robot
+      Enabled: true
+      Topic:
+        Value: /track/markers
+    - Class: rviz_default_plugins/Path
+      Name: Reference path
+      Enabled: true
+      Color: 245; 245; 245
+      Line Style: Lines
+      Topic:
+        Value: /track/reference
+        Durability Policy: Transient Local
+    - Class: rviz_default_plugins/MarkerArray
+      Name: IDS status
+      Enabled: true
+      Topic:
+        Value: /physguard/markers
+    - Class: rviz_default_plugins/TF
+      Name: TF
+      Enabled: true
+      Show Names: false
+      Marker Scale: 0.4
+  Enabled: true
+  Global Options:
+    Background Color: 32; 34; 38
+    Fixed Frame: odom
+    Frame Rate: 30
+  Tools:
+    - Class: rviz_default_plugins/MoveCamera
+  Value: true
+  Views:
+    Current:
+      Class: rviz_default_plugins/TopDownOrtho
+      Name: Current View
+      Angle: 0
+      Scale: 85
+      X: 0
+      Y: 2
+      Near Clip Distance: 0.01
+    Saved: ~
+Window Geometry:
+  Width: 1280
+  Height: 800

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+================================================================================
+ File        : fastdds_udp_only.xml
+ Project     : Cross-Layer Intrusion Detection for ROS 2 Robotic Networks
+ Author      : Shyam Rithin S
+ Description : Fast DDS profile that disables the shared-memory transport and
+               forces UDPv4 for all traffic, so packet-level monitoring
+               (tshark) can observe user data such as /cmd_vel.
+               SINGLE LAPTOP: keep the 127.0.0.1 whitelist below.
+               TWO LAPTOPS  : delete the <interfaceWhiteList> block (or set it
+                              to each machine's LAN address) so DDS uses the
+                              real network interface.
+================================================================================
+-->
+<profiles xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+  <transport_descriptors>
+    <transport_descriptor>
+      <transport_id>udp_only</transport_id>
+      <type>UDPv4</type>
+      <interfaceWhiteList>
+        <address>127.0.0.1</address>
+      </interfaceWhiteList>
+    </transport_descriptor>
+  </transport_descriptors>
+  <participant profile_name="udp_only_participant" is_default_profile="true">
+    <rtps>
+      <userTransports>
+        <transport_id>udp_only</transport_id>
+      </userTransports>
+      <useBuiltinTransports>false</useBuiltinTransports>
+    </rtps>
+  </participant>
+</profiles>
