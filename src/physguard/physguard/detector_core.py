@@ -161,19 +161,6 @@ class IDSDetector:
         self.s = DetectorState()
 
 
-if __name__ == "__main__":
-    # smoke test: benign -> injection -> stealth
-    d = IDSDetector()
-    dt = 0.05
-    print("benign:")
-    for _ in range(40):
-        st = d.update(0.4, 0.1, 0.4, 0.1, 0.4, 0.1, dt, ("/patrol_controller",), 2)
-    print("  residual=%.3f cusum=%.3f fused=%s" % (st.residual, st.cusum, st.fused))
-
-    print("injection (wire 3.0 m/s):")
-    st = d.update(3.0, 0.1, 0.4, 0.1, 0.4, 0.1, dt, ("/patrol_controller", "/evil"), 2)
-    print("  fused=%s reasons=%s" % (st.fused, st.reasons))
-
 
 class SafetyLatch:
     """
@@ -209,3 +196,19 @@ class SafetyLatch:
                 det.s.cusum = 0.0
                 self.events.append(("RELEASED", []))
         return self.engaged
+
+
+if __name__ == "__main__":
+    # smoke test: benign -> injection -> stealth
+    d = IDSDetector()
+    dt = 0.05
+    print("benign:")
+    for _ in range(40):
+        st = d.update(0.4, 0.1, 0.4, 0.1, 0.4, 0.1, dt, ("/patrol_controller",), 2)
+    print("  residual=%.3f cusum=%.3f fused=%s" % (st.residual, st.cusum, st.fused))
+
+    print("injection (wire 3.0 m/s):")
+    st = d.update(3.0, 0.1, 0.4, 0.1, 0.4, 0.1, dt, ("/patrol_controller", "/evil"), 2)
+    print("  fused=%s reasons=%s" % (st.fused, st.reasons))
+
+

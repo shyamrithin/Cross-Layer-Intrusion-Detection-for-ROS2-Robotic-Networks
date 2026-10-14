@@ -4,137 +4,206 @@
  File        : index.html
  Project     : Cross-Layer Intrusion Detection for ROS 2 Robotic Networks
  Author      : Shyam Rithin S
- Description : Single-page dashboard for ids_console.py. Groups the attack
-               catalogue by category, shows the exact command line for each
-               entry, launches/stops them by id, lists running processes, and
-               displays the live detector verdict and an output log. Polls
-               /api/state; no build step, no external libraries.
+ Description : Operator console for ids_console.py. Instrument-style layout for
+               a robotics network-security bench: a dense command catalogue on
+               the left, and a cross-layer detector readout (independent NET /
+               PHYS indicators + fused verdict), running processes and output
+               log on the right. Two accent hues only, each tied to one
+               detector layer. Polls /api/state; no libraries, no build step.
+               The JS API contract matches the previous version exactly.
 ================================================================================
 -->
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>IDS Attack Console</title>
+<title>Cross-Layer IDS · Operator Console</title>
 <style>
   :root{
-    --bg:#0e1420; --panel:#162032; --panel2:#1d2a3e; --line:#2a3a52;
-    --ink:#e4ebf5; --mut:#93a6bd; --dim:#64788f;
-    --red:#f0564a; --grn:#33d69a; --amb:#f2b03c; --cyan:#38c0e8; --vio:#a78bfa;
-    --mono:ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+    --bg:#0f1012; --panel:#161719; --panel2:#1c1e21; --raise:#232528;
+    --line:#2a2d31; --line2:#3b3f45;
+    --ink:#e8e5de; --mut:#9a968c; --dim:#6a675f; --faint:#4a4842;
+    --net:#48b4c4; --net-bg:#0f2d33; --net-ln:#1d5660;
+    --phy:#d99443; --phy-bg:#33240f; --phy-ln:#60461d;
+    --alarm:#e5484d; --alarm-bg:#2e1414; --alarm-ln:#5c2525;
+    --ok:#57a884; --ok-bg:#122a20;
+    --mono:ui-monospace,"JetBrains Mono","SF Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);
-       font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:14px}
-  header{display:flex;align-items:center;gap:14px;padding:12px 18px;
-         background:var(--panel);border-bottom:1px solid var(--line)}
-  header h1{font-size:16px;margin:0;font-weight:600}
-  header .sub{color:var(--dim);font-size:12px;font-family:var(--mono)}
-  .spacer{flex:1}
-  .pill{font-family:var(--mono);font-size:13px;font-weight:600;padding:6px 14px;
-        border-radius:999px;border:1px solid var(--line);display:flex;align-items:center;gap:8px}
-  .dot{width:9px;height:9px;border-radius:50%;background:var(--grn)}
-  .pill.alert{color:var(--red);border-color:#5a2721;background:#2a1614}
-  .pill.alert .dot{background:var(--red)}
-  .pill.warn{color:var(--amb);border-color:#6a4a17;background:#241c10}
-  .pill.warn .dot{background:var(--amb)}
-  .dry{color:var(--amb);font-family:var(--mono);font-size:12px;border:1px solid #6a4a17;
-       padding:4px 10px;border-radius:6px}
-  .wrap{display:grid;grid-template-columns:1fr 360px;gap:14px;padding:14px;max-width:1500px;margin:0 auto}
-  .col{display:flex;flex-direction:column;gap:14px;min-width:0}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
-  .card h2{font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--mut);margin:0 0 10px}
-  .cat{margin-bottom:14px}
-  .cat h3{font-size:13px;margin:0 0 7px;color:var(--cyan)}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:8px}
-  .atk{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 10px;
-       cursor:pointer;transition:.1s;position:relative}
-  .atk:hover{border-color:#3d5872;background:#22314880}
-  .atk .t{font-size:13px;font-weight:500;margin-bottom:3px}
-  .atk .meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:5px}
-  .tag{font-size:9.5px;letter-spacing:.3px;text-transform:uppercase;padding:1px 6px;border-radius:4px;
-       border:1px solid var(--line);color:var(--mut)}
-  .tag.physics{color:var(--amb);border-color:#6a4a17}
-  .tag.network{color:var(--cyan);border-color:#1d5b74}
-  .tag.none{color:var(--dim)}
-  .tag.danger{color:var(--red);border-color:#5a2721}
-  .tag.host{color:var(--vio);border-color:#4a3c7a}
-  .atk code{display:block;font-family:var(--mono);font-size:10.5px;color:var(--mut);
-            white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .atk.on{border-color:var(--red);background:#2a161480}
-  .atk .run{position:absolute;top:8px;right:9px;width:8px;height:8px;border-radius:50%;
-            background:var(--red);display:none}
-  .atk.on .run{display:block}
-  button{font:inherit;color:var(--ink);background:var(--panel2);border:1px solid var(--line);
-         border-radius:7px;padding:7px 12px;cursor:pointer}
-  button:hover{background:var(--panel)}
-  button.stopall{background:#2a1614;border-color:#5a2721;color:#f4b6ae;width:100%;margin-top:4px}
-  .verdict{font-family:var(--mono);font-size:20px;font-weight:600;text-align:center;padding:14px;
-           border-radius:8px;background:var(--panel2);border:1px solid var(--line)}
-  .verdict.clear{color:var(--grn)} .verdict.intr{color:var(--red);background:#2a1614;border-color:#5a2721}
-  .verdict.rec{color:var(--amb)} .verdict .sm{font-size:12px;color:var(--mut);margin-top:6px;font-weight:400}
-  .proc{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;background:var(--panel2);
-        border:1px solid var(--line);margin-bottom:6px;font-size:12px}
-  .proc code{font-family:var(--mono);font-size:11px;color:var(--mut);flex:1;overflow:hidden;
-             text-overflow:ellipsis;white-space:nowrap}
-  .proc button{padding:3px 9px;font-size:11px;background:#2a1614;border-color:#5a2721;color:#f4b6ae}
-  .proc .age{font-family:var(--mono);color:var(--dim);font-size:11px}
-  .log{height:260px;overflow-y:auto;font-family:var(--mono);font-size:11px;line-height:1.55;
-       background:#0b1018;border:1px solid var(--line);border-radius:7px;padding:8px 10px}
-  .log .warnl{color:var(--amb)} .log .startl{color:var(--grn)} .log .errl{color:var(--red)}
-  .sel{margin:4px 0 12px;padding:10px;border:1px dashed var(--line);border-radius:8px;background:#0b1018}
-  .sel .lbl{font-size:13px;font-weight:600;margin-bottom:5px}
-  .sel code{display:block;font-family:var(--mono);font-size:12px;color:var(--cyan);white-space:pre-wrap;
-            word-break:break-all;margin-bottom:6px}
-  .sel .d{font-size:12px;color:var(--mut);margin-bottom:8px}
-  .sel .go{background:#123a2c;border-color:#1e6c4f;color:#b7f2d8}
-  .foot{color:var(--dim);font-size:11px;text-align:center;padding:8px;font-family:var(--mono)}
-  @media(max-width:1000px){.wrap{grid-template-columns:1fr}}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font:13px/1.5 var(--mono);
+       -webkit-font-smoothing:antialiased}
+  .ui{font-family:var(--sans)}
+  .micro{font:10px/1 var(--sans);letter-spacing:.13em;text-transform:uppercase;color:var(--dim)}
+  a,button{font-family:var(--mono)}
+
+  /* ---- top bar ---- */
+  header{display:flex;align-items:center;gap:16px;height:46px;padding:0 16px;
+         border-bottom:1px solid var(--line);background:var(--panel)}
+  header .mark{font-family:var(--sans);font-weight:600;font-size:13px;letter-spacing:.02em}
+  header .mark b{color:var(--net);font-weight:600}
+  header .mark i{color:var(--phy);font-style:normal}
+  .env{display:flex;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:3px;overflow:hidden}
+  .env span{background:var(--panel2);padding:4px 9px;font-size:10.5px;color:var(--mut);letter-spacing:.04em}
+  .sp{flex:1}
+  .dry{color:var(--phy);border:1px solid var(--phy-ln);background:var(--phy-bg);
+       padding:3px 9px;border-radius:3px;font-size:10.5px;letter-spacing:.08em}
+  .conn{font-size:11px;color:var(--mut);display:flex;align-items:center;gap:7px}
+  .conn .led{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+  .conn.stale .led{background:var(--faint)}
+
+  /* ---- command strip ---- */
+  .strip{display:flex;align-items:stretch;gap:0;border-bottom:1px solid var(--line);
+         background:var(--bg);min-height:52px}
+  .strip .tag{display:flex;align-items:center;padding:0 14px;border-right:1px solid var(--line);
+              color:var(--dim);font-size:10px;letter-spacing:.14em;white-space:nowrap}
+  .strip .cmd{flex:1;display:flex;align-items:center;padding:0 14px;overflow:auto;color:var(--ink);
+              font-size:13px;white-space:nowrap}
+  .strip .cmd.empty{color:var(--faint)}
+  .strip .launch{border:none;border-left:1px solid var(--line);background:var(--panel);
+                 color:var(--dim);padding:0 20px;cursor:not-allowed;letter-spacing:.1em;font-size:11px}
+  .strip .launch.armed{background:#13332a;color:#8fe3bf;cursor:pointer}
+  .strip .launch.armed:hover{background:#174033}
+
+  /* ---- body grid ---- */
+  .grid{display:grid;grid-template-columns:1fr 340px;height:calc(100vh - 46px - 53px)}
+  .catalog{overflow-y:auto;border-right:1px solid var(--line)}
+  .rail{overflow-y:auto;background:var(--panel)}
+
+  /* ---- catalog ---- */
+  .cathead{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:10px;
+           padding:9px 16px;background:var(--bg);border-bottom:1px solid var(--line)}
+  .cathead .nm{font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.1em;
+               text-transform:uppercase;color:var(--mut)}
+  .cathead .ct{font-size:10px;color:var(--faint)}
+  .cathead .rule{flex:1;height:1px;background:var(--line)}
+
+  .row{display:grid;grid-template-columns:3px 1fr auto;align-items:center;gap:0;
+       border-bottom:1px solid #202225;cursor:pointer;transition:background .08s}
+  .row:hover{background:#191b1e}
+  .row.sel{background:#1b1e22}
+  .row .bar{align-self:stretch;background:var(--faint)}
+  .row.net .bar{background:var(--net)} .row.phy .bar{background:var(--phy)}
+  .row.none .bar{background:var(--faint)}
+  .row .mid{padding:8px 12px;min-width:0}
+  .row .lab{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+  .row .lab .t{font-family:var(--sans);font-size:13px;color:var(--ink)}
+  .row .lab .ly{font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:1px 5px;border-radius:2px}
+  .ly.net{color:var(--net);background:var(--net-bg)} .ly.phy{color:var(--phy);background:var(--phy-bg)}
+  .ly.none{color:var(--dim);background:#1f2124}
+  .row .lab .flag{font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);
+                  border:1px solid var(--line2);padding:0 4px;border-radius:2px}
+  .row .lab .flag.danger{color:var(--alarm);border-color:var(--alarm-ln)}
+  .row .cmdline{font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .act{padding:0 14px;color:var(--faint);font-size:16px;white-space:nowrap}
+  .row:hover .act{color:var(--mut)}
+  .row.live{background:var(--alarm-bg)}
+  .row.live .bar{background:var(--alarm)}
+  .row.live .act{color:var(--alarm)}
+  .pulse{width:7px;height:7px;border-radius:50%;background:var(--alarm);display:inline-block;
+         animation:bl 1s steps(2) infinite}
+  @keyframes bl{50%{opacity:.25}}
+
+  /* ---- rail: instrument ---- */
+  .panel{border-bottom:1px solid var(--line);padding:14px 16px}
+  .panel .hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .panel .hd .micro{color:var(--mut)}
+
+  .bus{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--dim);margin-bottom:14px;
+       letter-spacing:.04em}
+  .bus .n{color:var(--mut)} .bus .ar{color:var(--faint)}
+
+  .cells{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+  .cell{border:1px solid var(--line2);border-radius:4px;padding:11px 12px;background:var(--panel2);
+        transition:.15s}
+  .cell .k{font:10px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
+  .cell .v{font-size:13px;letter-spacing:.08em;color:var(--faint)}
+  .cell.net.on{border-color:var(--net);background:var(--net-bg)}
+  .cell.net.on .k{color:var(--net)} .cell.net.on .v{color:var(--net)}
+  .cell.phy.on{border-color:var(--phy);background:var(--phy-bg)}
+  .cell.phy.on .k{color:var(--phy)} .cell.phy.on .v{color:var(--phy)}
+
+  .verdict{border:1px solid var(--line2);border-radius:4px;padding:14px;text-align:center;
+           background:var(--panel2)}
+  .verdict .big{font-size:18px;letter-spacing:.1em;color:var(--mut)}
+  .verdict .sub{font-size:10.5px;color:var(--dim);margin-top:6px}
+  .verdict.clear{border-color:var(--ok);background:var(--ok-bg)} .verdict.clear .big{color:var(--ok)}
+  .verdict.intr{border-color:var(--alarm);background:var(--alarm-bg)} .verdict.intr .big{color:var(--alarm)}
+  .verdict.cal,.verdict.rec{border-color:var(--phy-ln)} .verdict.cal .big,.verdict.rec .big{color:var(--phy)}
+
+  .proc{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:9px;
+        padding:7px 0;border-top:1px solid #202225;font-size:11px}
+  .proc:first-child{border-top:none}
+  .proc .age{color:var(--dim);font-size:10px}
+  .proc .nm{color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .proc button{background:none;border:1px solid var(--alarm-ln);color:var(--alarm);
+               padding:2px 8px;border-radius:3px;font-size:10px;cursor:pointer;letter-spacing:.05em}
+  .proc button:hover{background:var(--alarm-bg)}
+  .empty{color:var(--faint);font-size:11px;padding:4px 0}
+  .stopall{width:100%;margin-top:11px;background:var(--alarm-bg);border:1px solid var(--alarm-ln);
+           color:#f0a8a8;padding:8px;border-radius:3px;cursor:pointer;letter-spacing:.1em;font-size:11px}
+  .stopall:hover{background:#3a1818}
+
+  .log{height:220px;overflow-y:auto;font-size:11px;line-height:1.6;color:var(--mut);
+       background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:8px 10px}
+  .log .tm{color:var(--faint)}
+  .log .s{color:var(--ok)} .log .w{color:var(--phy)} .log .e{color:var(--alarm)}
+
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-thumb{background:var(--line2);border-radius:5px}
+  ::-webkit-scrollbar-track{background:transparent}
 </style>
 </head>
 <body>
 <header>
-  <h1>Cross-Layer IDS &mdash; Attack Console</h1>
-  <span class="sub">ROS 2 / DDS &middot; lab testbed</span>
-  <span id="dry" class="dry" style="display:none">DRY-RUN</span>
-  <div class="spacer"></div>
-  <div id="pill" class="pill"><span class="dot"></span><span id="pilltext">detector: --</span></div>
+  <span class="mark"><b>cross-layer</b> <i>IDS</i> · operator console</span>
+  <div class="env" id="env"></div>
+  <span class="sp"></span>
+  <span id="dry" class="dry" style="display:none">DRY-RUN · NOTHING LAUNCHES</span>
+  <span class="conn" id="conn"><span class="led"></span><span id="conntext">linked</span></span>
 </header>
 
-<div class="wrap">
-  <div class="col">
-    <div class="card">
-      <div id="selected" class="sel" style="display:none">
-        <div class="lbl" id="sel-lbl"></div>
-        <code id="sel-cmd"></code>
-        <div class="d" id="sel-desc"></div>
-        <button class="go" id="sel-go">Launch this</button>
-      </div>
-      <div id="cats"></div>
-    </div>
-    <div class="card">
-      <h2>Network tools</h2>
-      <div class="grid" id="tools"></div>
-    </div>
-  </div>
+<div class="strip">
+  <div class="tag">SELECTED COMMAND</div>
+  <div class="cmd empty" id="selcmd">select an entry from the catalogue</div>
+  <button class="launch" id="launch" disabled>LAUNCH</button>
+</div>
 
-  <div class="col">
-    <div class="card">
-      <h2>Detector verdict</h2>
-      <div id="verdict" class="verdict clear">--<div class="sm" id="vsub">waiting for /physguard/status</div></div>
+<div class="grid">
+  <div class="catalog" id="catalog"></div>
+
+  <div class="rail">
+    <div class="panel">
+      <div class="hd"><span class="micro">cross-layer detector</span></div>
+      <div class="bus">
+        <span class="n">ctrl</span><span class="ar">──</span>
+        <span class="n">wire</span><span class="ar">──▶</span>
+        <span style="color:var(--net)">net</span><span class="ar">│</span><span style="color:var(--phy)">phys</span>
+        <span class="ar">──▶</span><span class="n">fuse</span><span class="ar">──▶</span><span class="n">robot</span>
+      </div>
+      <div class="cells">
+        <div class="cell net" id="cell-net"><div class="k">network layer</div><div class="v" id="v-net">quiet</div></div>
+        <div class="cell phy" id="cell-phy"><div class="k">physics layer</div><div class="v" id="v-phy">quiet</div></div>
+      </div>
+      <div class="verdict clear" id="verdict">
+        <div class="big" id="vbig">—</div>
+        <div class="sub" id="vsub">waiting for detector</div>
+      </div>
     </div>
-    <div class="card">
-      <h2>Running</h2>
-      <div id="procs"><div style="color:var(--dim);font-size:12px">nothing running</div></div>
-      <button class="stopall" onclick="stopAll()">Stop everything</button>
+
+    <div class="panel">
+      <div class="hd"><span class="micro">running</span><span class="micro" id="runct">0</span></div>
+      <div id="procs"><div class="empty">nothing running</div></div>
+      <button class="stopall" onclick="stopAll()">STOP EVERYTHING</button>
     </div>
-    <div class="card">
-      <h2>Output log</h2>
+
+    <div class="panel">
+      <div class="hd"><span class="micro">output log</span></div>
       <div class="log" id="log"></div>
     </div>
   </div>
 </div>
-<div class="foot">ID-based launcher &middot; commands run only against your own robot on an isolated ROS_DOMAIN_ID &middot; lab use only</div>
 
 <script>
 let CAT=null, sel=null;
@@ -143,75 +212,105 @@ const esc=s=>(s||"").replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]
 async function boot(){
   CAT=await (await fetch('/api/catalog')).json();
   if(CAT.dry_run) document.getElementById('dry').style.display='inline-block';
-  renderCats(); renderTools(); tick(); setInterval(tick,700);
+  const c=CAT.config||{};
+  document.getElementById('env').innerHTML=
+    [`DOMAIN ${c.domain||'42'}`,'FASTRTPS','UDP',`${c.robot_ip||''}`].filter(Boolean)
+    .map(x=>`<span>${esc(x)}</span>`).join('');
+  renderCatalog(); tick(); setInterval(tick,700);
 }
-function card(a){
-  const tags=[]; if(a.layer) tags.push(`<span class="tag ${a.layer}">${a.layer==='none'?'not detected':a.layer}</span>`);
-  if(a.danger) tags.push('<span class="tag danger">sudo/danger</span>');
-  if(a.runs_on==='robot_host') tags.push('<span class="tag host">robot host</span>');
-  if(a.needs) tags.push(`<span class="tag">needs ${a.needs}</span>`);
-  return `<div class="atk" data-id="${a.id}" onclick="pick('${a.id}')">
-    <span class="run"></span>
-    <div class="t">${esc(a.label)}</div>
-    <div class="meta">${tags.join('')}</div>
-    <code>${esc(a.cmd_resolved)}</code></div>`;
+
+function rowHTML(a){
+  const ly=a.layer||'none';
+  const tags=[`<span class="ly ${ly}">${ly==='none'?'passive':ly}</span>`];
+  if(a.danger) tags.push('<span class="flag danger">sudo</span>');
+  if(a.runs_on==='robot_host') tags.push('<span class="flag">robot host</span>');
+  if(a.needs) tags.push(`<span class="flag">${esc(a.needs)}</span>`);
+  return `<div class="row ${ly}" data-id="${a.id}" onclick="pick('${a.id}')">
+    <div class="bar"></div>
+    <div class="mid">
+      <div class="lab"><span class="t">${esc(a.label)}</span>${tags.join('')}</div>
+      <div class="cmdline">${esc(a.cmd_resolved)}</div>
+    </div>
+    <div class="act" title="select">▸</div>
+  </div>`;
 }
-function renderCats(){
+function renderCatalog(){
   const byCat={};
   CAT.attacks.forEach(a=>{(byCat[a.cat]=byCat[a.cat]||[]).push(a)});
-  document.getElementById('cats').innerHTML=Object.entries(byCat).map(([c,list])=>
-    `<div class="cat"><h3>${esc(c)} <span style="color:var(--dim);font-weight:400">(${list.length})</span></h3>
-     <div class="grid">${list.map(card).join('')}</div></div>`).join('');
-}
-function renderTools(){
-  document.getElementById('tools').innerHTML=CAT.tools.map(card).join('');
+  let html='';
+  for(const [c,list] of Object.entries(byCat)){
+    html+=`<div class="cathead"><span class="nm">${esc(c)}</span>
+      <span class="ct">${list.length}</span><span class="rule"></span></div>`;
+    html+=list.map(rowHTML).join('');
+  }
+  html+=`<div class="cathead"><span class="nm">Network Tools</span>
+    <span class="ct">${CAT.tools.length}</span><span class="rule"></span></div>`;
+  html+=CAT.tools.map(rowHTML).join('');
+  document.getElementById('catalog').innerHTML=html;
 }
 function pick(id){
   sel=[...CAT.attacks,...CAT.tools].find(a=>a.id===id);
-  document.getElementById('selected').style.display='block';
-  document.getElementById('sel-lbl').textContent=sel.label;
-  document.getElementById('sel-cmd').textContent=sel.cmd_resolved;
-  document.getElementById('sel-desc').textContent=sel.desc||'';
-  document.getElementById('sel-go').onclick=()=>run(id);
-  window.scrollTo({top:0,behavior:'smooth'});
+  document.querySelectorAll('.row').forEach(r=>r.classList.toggle('sel',r.dataset.id===id));
+  const sc=document.getElementById('selcmd'), lb=document.getElementById('launch');
+  sc.textContent=sel.cmd_resolved; sc.classList.remove('empty');
+  lb.classList.add('armed'); lb.disabled=false; lb.textContent='LAUNCH';
+  lb.onclick=()=>run(id);
 }
 async function run(id){
   const r=await (await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({id})})).json();
   if(!r.ok) alert('Failed: '+(r.error||'?'));
 }
-async function stop(pid){ await fetch('/api/stop',{method:'POST',headers:{'Content-Type':'application/json'},
-  body:JSON.stringify({pid})}); }
+async function stop(pid){ await fetch('/api/stop',{method:'POST',
+  headers:{'Content-Type':'application/json'},body:JSON.stringify({pid})}); }
 async function stopAll(){ await fetch('/api/stop_all',{method:'POST'}); }
 
+function setCell(id,on,txt){
+  const el=document.getElementById('cell-'+id);
+  el.classList.toggle('on',on);
+  document.getElementById('v-'+id).textContent=on?txt:'quiet';
+}
+
 async function tick(){
-  let s; try{ s=await (await fetch('/api/state')).json(); }catch(e){ return; }
-  // verdict
-  const v=s.verdict||{}, st=(v.status||'').toUpperCase(), tr=(v.track||'');
-  const vd=document.getElementById('verdict'), pill=document.getElementById('pill'),
-        pt=document.getElementById('pilltext');
-  let cls='clear', txt=v.status||'--', sub=tr?('track: '+tr):'';
-  if(st.startsWith('INTRUSION')){cls='intr';} else if(st.startsWith('CALIBRAT')){cls='rec';}
-  else if(tr==='RECOVERING'){cls='rec';} else if(st==='CLEAR'){cls='clear';}
-  vd.className='verdict '+cls; vd.innerHTML=esc(txt)+`<div class="sm">${esc(sub||'')}</div>`;
-  pill.className='pill '+(cls==='intr'?'alert':cls==='rec'?'warn':'');
-  pt.textContent='detector: '+(txt||'--');
-  // running set -> highlight cards
+  let s; const conn=document.getElementById('conn');
+  try{ s=await (await fetch('/api/state')).json(); }
+  catch(e){ conn.classList.add('stale'); document.getElementById('conntext').textContent='no server'; return; }
+  conn.classList.remove('stale'); document.getElementById('conntext').textContent='linked';
+
+  const v=s.verdict||{}, raw=(v.status||''), st=raw.toUpperCase(), tr=(v.track||'');
+  const net=st.includes('[NET]'), phy=st.includes('[PHY]');
+  setCell('net',net,'FIRING'); setCell('phy',phy,'FIRING');
+
+  const vd=document.getElementById('verdict'), big=document.getElementById('vbig'),
+        sub=document.getElementById('vsub');
+  let cls='clear', label='CLEAR', note=tr?('track · '+tr.toLowerCase()):'nominal';
+  if(st.startsWith('INTRUSION')){cls='intr'; label='INTRUSION'; note=raw.replace(/^INTRUSION:?\s*/i,'')||'detected';}
+  else if(st.startsWith('CALIBRAT')){cls='cal'; label='CALIBRATING'; note=raw.toLowerCase();}
+  else if(tr==='RECOVERING'){cls='rec'; label='RECOVERING'; note='returning to track';}
+  else if(st==='CLEAR'){cls='clear'; label='CLEAR';}
+  else if(!raw){label='—'; note='waiting for detector';}
+  vd.className='verdict '+cls; big.textContent=label; sub.textContent=note.slice(0,60);
+
   const running=new Set(s.procs.filter(p=>p.running).map(p=>p.id));
-  document.querySelectorAll('.atk').forEach(el=>el.classList.toggle('on',running.has(el.dataset.id)));
-  // procs
+  document.querySelectorAll('.row').forEach(el=>el.classList.toggle('live',running.has(el.dataset.id)));
+  document.querySelectorAll('.row.live .act').forEach(a=>a.innerHTML='<span class="pulse"></span>');
+
   const pr=s.procs.filter(p=>p.running);
-  document.getElementById('procs').innerHTML = pr.length? pr.map(p=>
-    `<div class="proc"><span class="age">${p.secs}s</span><code title="${esc(p.cmd)}">${esc(p.label)}</code>
-     <button onclick="stop(${p.pid})">stop</button></div>`).join('')
-    : '<div style="color:var(--dim);font-size:12px">nothing running</div>';
-  // log
-  const lg=document.getElementById('log'), atBottom=lg.scrollTop+lg.clientHeight>=lg.scrollHeight-20;
+  document.getElementById('runct').textContent=pr.length;
+  document.getElementById('procs').innerHTML = pr.length ? pr.map(p=>
+    `<div class="proc"><span class="age">${p.secs}s</span>
+     <span class="nm" title="${esc(p.cmd)}">${esc(p.label)}</span>
+     <button onclick="stop(${p.pid})">STOP</button></div>`).join('')
+    : '<div class="empty">nothing running</div>';
+
+  const lg=document.getElementById('log'), bot=lg.scrollTop+lg.clientHeight>=lg.scrollHeight-24;
   lg.innerHTML=s.logs.map(l=>{
-    let c=''; if(l.includes('START'))c='startl'; else if(l.includes('FAILED')||l.includes('exited rc=1'))c='errl';
-    else if(l.includes('STOP')||l.includes('DRY-RUN'))c='warnl';
-    return `<div class="${c}">${esc(l)}</div>`;}).join('');
-  if(atBottom) lg.scrollTop=lg.scrollHeight;
+    let c=''; if(l.includes('START'))c='s'; else if(l.includes('FAILED')||l.includes('rc=1'))c='e';
+    else if(l.includes('STOP')||l.includes('DRY-RUN'))c='w';
+    const m=l.match(/^(\S+)\s+(.*)$/);
+    return m?`<div class="${c}"><span class="tm">${m[1]}</span> ${esc(m[2])}</div>`:`<div>${esc(l)}</div>`;
+  }).join('');
+  if(bot) lg.scrollTop=lg.scrollHeight;
 }
 boot();
 </script>

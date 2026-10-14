@@ -56,7 +56,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 STATE = {
     "procs": {},        # pid -> {id, label, cmd, cat, started, rc}
     "logs": deque(maxlen=400),
-    "verdict": {"status": "unknown", "track": "unknown", "ts": 0.0},
+    "verdict": {"status": "unknown", "track": "unknown", "xte": None, "ts": 0.0},
 }
 LOCK = threading.Lock()
 ARGS = None
@@ -70,12 +70,14 @@ def load_catalog():
     with open(os.path.join(HERE, "attacks.json")) as f:
         cat = json.load(f)
     cfg = cat.get("config", {})
+    # Substitute ONLY our known {placeholders} by explicit replace. Do not use
+    # str.format(): the ROS message payloads contain their own literal braces
+    # (e.g. "{linear: {x: 2.5}}") which format() would try to parse as fields.
     for item in cat["attacks"] + cat["tools"]:
-        try:
-            item["cmd_resolved"] = item["cmd"].format(**cfg)
-        except KeyError as e:
-            item["cmd_resolved"] = item["cmd"]
-            item["bad_placeholder"] = str(e)
+        resolved = item["cmd"]
+        for k, v in cfg.items():
+            resolved = resolved.replace("{" + k + "}", str(v))
+        item["cmd_resolved"] = resolved
     cat["by_id"] = {i["id"]: i for i in cat["attacks"] + cat["tools"]}
     return cat
 
@@ -146,10 +148,10 @@ def stop_all():
 # ---------------------------------------------------------------------------
 # live detector verdict via `ros2 topic echo`
 # ---------------------------------------------------------------------------
-def tail_topic(topic, key):
+def tail_topic(topic, key, msgtype="std_msgs/msg/String", numeric=False):
     if ARGS.dry_run:
         return
-    cmd = ["ros2", "topic", "echo", "--field", "data", topic, "std_msgs/msg/String"]
+    cmd = ["ros2", "topic", "echo", "--field", "data", topic, msgtype]
     while True:
         try:
             p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
@@ -158,7 +160,7 @@ def tail_topic(topic, key):
                 v = raw.strip().strip('"').strip("'")
                 if v and v not in ("---",):
                     with LOCK:
-                        STATE["verdict"][key] = v
+                        STATE["verdict"][key] = round(float(v), 3) if numeric else v
                         STATE["verdict"]["ts"] = time.time()
         except Exception:                        # noqa: BLE001
             pass
@@ -231,12 +233,16 @@ def main():
                     help="show commands, launch nothing (safe preview)")
     ap.add_argument("--status-topic", default="/physguard/status")
     ap.add_argument("--track-topic", default="/track/state")
+    ap.add_argument("--xte-topic", default="/track/xte")
     ARGS = ap.parse_args()
     CATALOG = load_catalog()
 
     threading.Thread(target=tail_topic, args=(ARGS.status_topic, "status"),
                      daemon=True).start()
     threading.Thread(target=tail_topic, args=(ARGS.track_topic, "track"),
+                     daemon=True).start()
+    threading.Thread(target=tail_topic,
+                     args=(ARGS.xte_topic, "xte", "std_msgs/msg/Float32", True),
                      daemon=True).start()
 
     mode = "DRY-RUN (nothing launches)" if ARGS.dry_run else "LIVE"
