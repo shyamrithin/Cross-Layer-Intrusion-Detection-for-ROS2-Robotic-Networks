@@ -25,8 +25,8 @@ two-machine attack.
 ```bash
 # source the same ROS 2 env as the robot (so ROS_DOMAIN_ID and the DDS profile match)
 source /opt/ros/humble/setup.bash
-source ~/ids_ws/install/setup.bash
-source ~/ids_ws/src/physguard/tools/ids_env.sh   # or wherever ids_env.sh lives
+source ~/physguard_ws/install/setup.bash
+source ~/physguard_ws/ids_env.sh   # or wherever ids_env.sh lives
 
 cd console
 python3 ids_console.py                 # http://<laptop-B-ip>:8088

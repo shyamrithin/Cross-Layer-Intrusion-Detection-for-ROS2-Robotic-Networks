@@ -53,6 +53,7 @@ class AttackInjector(Node):
         self.flood_pubs = []
         self.auth = (0.0, 0.0)
         self.t = 0.0
+        self._flood_t = 0.0
         self.last_mode = None
         self.create_subscription(Twist, 'cmd_vel_auth', self.on_auth, 10)
         self.mode_pub = self.create_publisher(String, 'attack/mode', 10)
@@ -65,15 +66,19 @@ class AttackInjector(Node):
     def on_auth(self, m):
         self.auth = (m.linear.x, m.angular.z)
 
-    def _set_publisher(self, active):
+    def _set_wire_pub(self, active):
+        """Create/destroy the single /cmd_vel_raw writer used by the
+        command-injection modes. The flood pool is managed separately so that
+        entering flood mode does not tear it down on every cycle."""
         if active and self.pub is None:
             self.pub = self.create_publisher(Twist, 'cmd_vel_raw', 10)
         elif not active and self.pub is not None:
             self.destroy_publisher(self.pub)
             self.pub = None
-        if not active:
-            while self.flood_pubs:
-                self.destroy_publisher(self.flood_pubs.pop())
+
+    def _clear_flood(self):
+        while self.flood_pubs:
+            self.destroy_publisher(self.flood_pubs.pop())
 
     def step(self):
         mode = str(self.get_parameter('mode').value)
@@ -83,15 +88,25 @@ class AttackInjector(Node):
             self.get_logger().warn(f'attack mode -> {mode}')
             self.last_mode = mode
             self.mode_pub.publish(String(data=mode))
-        self._set_publisher(mode not in ('none', 'flood'))
+        self._set_wire_pub(mode not in ('none', 'flood'))
+        if mode != 'flood':
+            self._clear_flood()
         if mode == 'none':
             return
         if mode == 'flood':
-            for _ in range(int(6 * k) + 1):
-                p = self.create_publisher(Twist, f'junk_{random.randint(0, 99999)}', 1)
-                self.flood_pubs.append(p)
-            while len(self.flood_pubs) > 60:
-                self.destroy_publisher(self.flood_pubs.pop(0))
+            # Hold a bounded pool of short-lived participants and churn a few
+            # each cycle. Gated to ~10 Hz, well below the 100 Hz publish rate,
+            # so the attacker node itself stays responsive; it is the sustained
+            # create/destroy churn that the network layer and the wire collector
+            # detect, not the raw creation rate.
+            if self.t - self._flood_t >= 0.1:
+                self._flood_t = self.t
+                for _ in range(int(6 * k) + 1):
+                    p = self.create_publisher(
+                        Twist, f'junk_{random.randint(0, 99999)}', 1)
+                    self.flood_pubs.append(p)
+                while len(self.flood_pubs) > 60:
+                    self.destroy_publisher(self.flood_pubs.pop(0))
             return
 
         v, w = self.auth

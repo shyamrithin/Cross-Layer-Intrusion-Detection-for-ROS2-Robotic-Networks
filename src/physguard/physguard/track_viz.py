@@ -151,7 +151,7 @@ class TrackViz(Node):
 
         if self.alarm:
             self.state = 'UNDER_ATTACK'
-        elif self.ep is not None or abs(e) > self.rtol and self.state != 'NOMINAL':
+        elif self.ep is not None or (abs(e) > self.rtol and self.state != 'NOMINAL'):
             self.state = 'RECOVERING'
         else:
             self.state = 'NOMINAL'

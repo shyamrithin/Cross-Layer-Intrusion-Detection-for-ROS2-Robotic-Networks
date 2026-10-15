@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>physguard</name>
-  <version>0.1.0</version>
+  <version>0.3.0</version>
   <description>Cross-layer intrusion detection for ROS 2 differential-drive robots</description>
-  <maintainer email="shyam@example.com">Shyam Rithin S</maintainer>
+  <maintainer email="shyamrithin44@gmail.com">Shyam Rithin S</maintainer>
   <license>MIT</license>
   <exec_depend>rclpy</exec_depend>
   <exec_depend>std_msgs</exec_depend>
