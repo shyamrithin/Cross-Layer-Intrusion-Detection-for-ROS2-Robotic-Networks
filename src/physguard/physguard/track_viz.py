@@ -103,7 +103,7 @@ class TrackViz(Node):
             if self.ep is not None and self.ep['t_detect'] is None:
                 self.ep['t_detect'] = now
                 lat = now - self.ep['t_attack']
-                self.pin(RED, f'DETECTED +{lat:.2f}s')
+                self.pin(RED, f'DETECTED\n+{lat:.2f}s')
                 self.get_logger().warn(f'alarm raised {lat:.2f} s after attack start')
             elif self.ep is None:
                 self.pin(RED, 'ALARM')
@@ -115,16 +115,35 @@ class TrackViz(Node):
             if m.data != 'none' and self.ep is None:
                 self.ep = dict(mode=m.data, t_attack=now, t_detect=None,
                                t_end=None, peak=0.0)
-                self.pin(AMBER, f'ATTACK: {m.data}')
+                self.pin(AMBER, f'ATTACK\n{m.data}')
             elif m.data == 'none' and self.ep is not None:
                 self.ep['t_end'] = now
             self.mode = m.data
 
     # ---------------- logic ----------------
+    def outward(self, x, y):
+        """Unit normal pointing to the OUTSIDE of the track at (x, y).
+        The track is driven counter-clockwise, so the left normal points
+        inward and the outward normal is its negative."""
+        i, _ = self.track.cross_track(x, y, self.hint)
+        px, py = self.track.pts[i]
+        qx, qy = self.track.pts[(i + 1) % self.track.N]
+        tx, ty = qx - px, qy - py
+        n = math.hypot(tx, ty) or 1.0
+        return ty / n, -tx / n
+
     def pin(self, color, text):
+        """Drop an event pin at the robot. The label is placed outside the
+        track, stacked away from earlier pins at the same spot so that
+        back-to-back events (attack, then detection 0.01 s later) stay
+        readable."""
         if self.pose is None:
             return
-        self.pins.append((self.pose[0], self.pose[1], color, text))
+        x, y = self.pose[0], self.pose[1]
+        ox, oy = self.outward(x, y)
+        near = sum(1 for p in self.pins if math.hypot(p[0] - x, p[1] - y) < 0.8)
+        d = 0.6 + 0.42 * near
+        self.pins.append((x, y, color, text, x + ox * d, y + oy * d))
 
     def tick(self):
         if self.pose is None:
@@ -141,7 +160,7 @@ class TrackViz(Node):
                 if self.inside_since and now - self.inside_since >= 1.0:
                     rec = self.inside_since - self.ep['t_end']
                     lat = (self.ep['t_detect'] - self.ep['t_attack']) if self.ep['t_detect'] else None
-                    self.pin(GREEN, f'RECOVERED')
+                    self.pin(GREEN, 'RECOVERED')
                     self.get_logger().info(
                         f"episode [{self.ep['mode']}] detection "
                         f"{'%.2f s' % lat if lat is not None else 'MISSED'}, "
@@ -221,25 +240,38 @@ class TrackViz(Node):
         head.color = rgba((1.0, 1.0, 1.0))
         arr.markers.append(head)
 
+        # Robot readout, placed just inside the track so it never collides
+        # with the event pins (which sit outside). RViz2 renders spaces in
+        # TEXT_VIEW_FACING very wide, so labels use line breaks, not spaces.
+        ox, oy = self.outward(x, y)
         info = self.base('robot', 2, Marker.TEXT_VIEW_FACING)
-        info.pose.position.x, info.pose.position.y, info.pose.position.z = x, y - 0.45, 0.45
-        info.scale.z = 0.2
-        info.color = rgba((0.9, 0.9, 0.9))
-        info.text = f'{self.state} | xte {e:+.2f} m'
+        info.pose.position.x = x - ox * 0.75
+        info.pose.position.y = y - oy * 0.75
+        info.pose.position.z = 0.45
+        info.scale.z = 0.19
+        info.color = rgba(col)
+        info.text = f'{self.state}\nxte={e:+.2f}m'
         arr.markers.append(info)
 
-        for k, (px, py, c, text) in enumerate(self.pins[-12:]):
+        pins = self.pins[-12:]
+        lead = self.base('pins', 999, Marker.LINE_LIST)
+        lead.scale.x = 0.012
+        for k, (px, py, c, text, lx, ly) in enumerate(pins):
             s = self.base('pins', 2 * k, Marker.SPHERE)
             s.pose.position.x, s.pose.position.y, s.pose.position.z = px, py, 0.1
-            s.scale.x = s.scale.y = s.scale.z = 0.16
+            s.scale.x = s.scale.y = s.scale.z = 0.14
             s.color = rgba(c)
             arr.markers.append(s)
             t = self.base('pins', 2 * k + 1, Marker.TEXT_VIEW_FACING)
-            t.pose.position.x, t.pose.position.y, t.pose.position.z = px, py + 0.25 + 0.3 * (k % 2), 0.3
-            t.scale.z = 0.18
+            t.pose.position.x, t.pose.position.y, t.pose.position.z = lx, ly, 0.3
+            t.scale.z = 0.17
             t.color = rgba(c)
             t.text = text
             arr.markers.append(t)
+            lead.points += [Point(x=px, y=py, z=0.1), Point(x=lx, y=ly, z=0.1)]
+            lead.colors += [rgba(c, 0.6), rgba(c, 0.6)]
+        if lead.points:
+            arr.markers.append(lead)
         self.p_mrk.publish(arr)
 
 

@@ -52,6 +52,7 @@ from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Float32, Bool, String
 from visualization_msgs.msg import Marker, MarkerArray
+from builtin_interfaces.msg import Time
 
 from physguard.detector_core import IDSDetector, DetectorConfig, SafetyLatch
 
@@ -195,7 +196,19 @@ class IDSNode(Node):
         else:
             txt = 'CLEAR'
         self.p_sts.publish(String(data=txt))
-        self.publish_markers(alarm, calibrating, txt)
+
+        # Short label for the RViz marker (full reasons stay on /physguard/status
+        # and in the log). RViz2 draws spaces very wide, so use line breaks.
+        if calibrating:
+            label = f'CALIBRATING\n{max(0.0, self.calib_s - t):.0f}s'
+        elif alarm:
+            layers = ('[NET]' if st.net_fired else '') + ('[PHY]' if st.phy_fired else '')
+            label = 'INTRUSION\n' + (layers or '[LATCHED]')
+            if not g('safety_enabled'):
+                label += '\nSAFETY_OFF'
+        else:
+            label = 'CLEAR'
+        self.publish_markers(alarm, calibrating, label)
 
         if self.csv:
             self.w.writerow([f'{t:.3f}', f'{self.wire_v:.4f}', f'{self.wire_w:.4f}',
@@ -209,7 +222,11 @@ class IDSNode(Node):
     def publish_markers(self, alarm, calibrating, txt):
         m = Marker()
         m.header.frame_id = 'base_link'
-        m.header.stamp = self.get_clock().now().to_msg()
+        # Zero stamp = "use the latest available transform". Stamping with
+        # now() made RViz wait on a base_link transform newer than the last
+        # one the simulator had published, so the marker was held back.
+        m.header.stamp = Time()
+        m.frame_locked = True
         m.ns, m.id = 'physguard', 0
         m.type, m.action = Marker.TEXT_VIEW_FACING, Marker.ADD
         m.pose.position.z = 0.7
