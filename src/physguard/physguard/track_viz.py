@@ -79,6 +79,7 @@ class TrackViz(Node):
         self.hint = None
         self.xte = 0.0
         self.alarm = False
+        self.alarm_t = 0.0
         self.mode = 'none'
         self.trail = deque(maxlen=int(g('trail_len')))
         self.pins = []
@@ -100,6 +101,7 @@ class TrackViz(Node):
     def on_alert(self, m):
         now = time.time()
         if m.data and not self.alarm:
+            self.alarm_t = now
             if self.ep is not None and self.ep['t_detect'] is None:
                 self.ep['t_detect'] = now
                 lat = now - self.ep['t_attack']
@@ -116,6 +118,9 @@ class TrackViz(Node):
                 self.ep = dict(mode=m.data, t_attack=now, t_detect=None,
                                t_end=None, peak=0.0)
                 self.pin(AMBER, f'ATTACK\n{m.data}')
+                if self.alarm and now - self.alarm_t < 2.0:   # alarm beat this message
+                    self.ep['t_detect'] = self.alarm_t
+                    self.pin(RED, 'DETECTED\n+0.00s')
             elif m.data == 'none' and self.ep is not None:
                 self.ep['t_end'] = now
             self.mode = m.data
@@ -159,7 +164,7 @@ class TrackViz(Node):
                 self.inside_since = (self.inside_since or now) if abs(e) < self.rtol else None
                 if self.inside_since and now - self.inside_since >= 1.0:
                     rec = self.inside_since - self.ep['t_end']
-                    lat = (self.ep['t_detect'] - self.ep['t_attack']) if self.ep['t_detect'] else None
+                    lat = max(0.0, self.ep['t_detect'] - self.ep['t_attack']) if self.ep['t_detect'] else None
                     self.pin(GREEN, 'RECOVERED')
                     self.get_logger().info(
                         f"episode [{self.ep['mode']}] detection "

@@ -86,6 +86,7 @@ class IDSNode(Node):
         self.prev_pubs = None
         self.churn = []
         self.t0 = time.time()
+        self.got_odom = False
         self.calib_s = float(g('auto_calibrate_s'))
         self.calib = []
         self.calibrated = self.calib_s <= 0.0
@@ -122,6 +123,10 @@ class IDSNode(Node):
     def on_auth(self, m): self.auth_v, self.auth_w = m.linear.x, m.angular.z
 
     def on_odom(self, m):
+        if not self.got_odom:
+            self.got_odom = True
+            self.t0 = time.time()
+            self.get_logger().info('odometry received, calibration window starts now')
         self.meas_v = m.twist.twist.linear.x
         self.meas_w = m.twist.twist.angular.z
 
@@ -151,6 +156,8 @@ class IDSNode(Node):
 
     def step(self):
         g = lambda n: self.get_parameter(n).value
+        if not self.got_odom:          # plant not up yet (Gazebo still loading)
+            return
         t = time.time() - self.t0
         if not self.calibrated and t >= self.calib_s:
             self.finish_calibration()
