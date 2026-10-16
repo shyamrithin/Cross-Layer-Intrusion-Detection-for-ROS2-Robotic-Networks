@@ -172,7 +172,10 @@ class IDSNode(Node):
                                       self.auth_v, self.auth_w, 0.05)
             for kind, reasons in self.latch.events:
                 if kind == 'ENGAGED':
-                    self.get_logger().warn('INTRUSION: ' + '; '.join(reasons))
+                    action = ('  -> BLOCKED, forwarding authorized command'
+                              if g('safety_enabled') else
+                              '  -> NOT BLOCKED, safety filter is off')
+                    self.get_logger().warn('INTRUSION: ' + '; '.join(reasons) + action)
                 else:
                     self.get_logger().info('wire consistent again, safety filter released')
 
@@ -204,8 +207,7 @@ class IDSNode(Node):
         elif alarm:
             layers = ('[NET]' if st.net_fired else '') + ('[PHY]' if st.phy_fired else '')
             label = 'INTRUSION\n' + (layers or '[LATCHED]')
-            if not g('safety_enabled'):
-                label += '\nSAFETY_OFF'
+            label += '\nBLOCKED' if g('safety_enabled') else '\nNOT_BLOCKED'
         else:
             label = 'CLEAR'
         self.publish_markers(alarm, calibrating, label)
