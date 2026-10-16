@@ -1,0 +1,144 @@
+#!/usr/bin/env bash
+# =============================================================================
+# File        : ids
+# Project     : Cross-Layer Intrusion Detection for ROS 2 Robotic Networks
+# Author      : Shyam Rithin S (RA2311004010308)
+# =============================================================================
+# Description
+# -----------
+# One helper for the whole bench. Every subcommand sources the three things you
+# used to type by hand - the ROS 2 distro, the workspace overlay and the DDS
+# env (ids_env.sh) - so you never source anything manually again. Launch
+# subcommands also run the Gazebo/DDS cleanup first.
+#
+# Install
+#   Copy this file and ids_env.sh + fastdds_udp_only.xml into the workspace
+#   root (~/physguard_ws), make it executable, and optionally alias it:
+#     cp tools/ids ~/physguard_ws/ids && chmod +x ~/physguard_ws/ids
+#     echo "alias ids='~/physguard_ws/ids'" >> ~/.bashrc && source ~/.bashrc
+#
+# Resolution (override with env vars if your paths differ)
+#   PHYSGUARD_WS   workspace root      (default: this script's directory)
+#   ROS_DISTRO     ROS 2 distro        (default: humble)
+#   IDS_CONSOLE    console directory   (default: ~/ros2-cross-layer-ids/console)
+#
+# Commands
+#   ids demo [fake|gazebo]      cleanup + launch the bench (RViz2, IDS, plant)
+#   ids bench <args...>         launch the bench with raw launch args, e.g.
+#                               ids bench attacker:=true wire:=true
+#   ids attack                  run the attacker, idle (switch modes from another shell)
+#   ids spoof                   run the attacker as a spoofed /pure_pursuit, hijacking
+#   ids mode <name>             set attacker mode: none garbage inject stealth hijack flood
+#   ids safety <on|off>         enable/disable the inline safety filter
+#   ids wire                    run the tshark wire collector
+#   ids console                 run the web console
+#   ids nodes                   list live ROS 2 nodes (restarts a stale daemon)
+#   ids clean                   kill stale sim processes and stop the daemon
+#   ids shell                   open a new shell with everything sourced
+#   ids help                    this text
+# =============================================================================
+
+# --- resolve paths -----------------------------------------------------------
+SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WS="${PHYSGUARD_WS:-$SELF}"
+ROS_DISTRO="${ROS_DISTRO:-humble}"
+CONSOLE="${IDS_CONSOLE:-$HOME/ros2-cross-layer-ids/console}"
+
+_src() {
+  # Source the three environments quietly. Order matters: distro, then the
+  # workspace overlay, then the DDS/domain env.
+  source "/opt/ros/$ROS_DISTRO/setup.bash" 2>/dev/null \
+    || { echo "[ids] cannot source /opt/ros/$ROS_DISTRO/setup.bash"; return 1; }
+  if [ -f "$WS/install/setup.bash" ]; then
+    source "$WS/install/setup.bash"
+  else
+    echo "[ids] no overlay at $WS/install - build first: (cd $WS && colcon build)"; return 1
+  fi
+  if [ -f "$WS/ids_env.sh" ]; then
+    source "$WS/ids_env.sh"
+  else
+    echo "[ids] ids_env.sh not found in $WS - copy it there"; return 1
+  fi
+}
+
+_clean() {
+  pkill -f "gz sim" 2>/dev/null
+  pkill -f ruby 2>/dev/null
+  pkill -f cerebri 2>/dev/null
+  ros2 daemon stop >/dev/null 2>&1
+  echo "[ids] cleaned stale sim processes + stopped daemon"
+}
+
+cmd="${1:-help}"; shift 2>/dev/null
+
+case "$cmd" in
+  demo)
+    sim="${1:-fake}"
+    _src || exit 1
+    _clean
+    echo "[ids] launching bench (sim:=$sim) - wait for 'IDS armed'"
+    exec ros2 launch physguard bench.launch.py sim:="$sim"
+    ;;
+  bench)
+    _src || exit 1
+    _clean
+    exec ros2 launch physguard bench.launch.py "$@"
+    ;;
+  attack)
+    _src || exit 1
+    echo "[ids] attacker up (idle). From another shell: ids mode hijack"
+    exec ros2 run physguard attack_injector
+    ;;
+  spoof)
+    _src || exit 1
+    echo "[ids] attacker spoofing /pure_pursuit, mode hijack (physics-only detection)"
+    exec ros2 run physguard attack_injector --ros-args -r __node:=pure_pursuit -p mode:=hijack
+    ;;
+  mode)
+    [ -z "$1" ] && { echo "usage: ids mode <none|garbage|inject|stealth|hijack|flood>"; exit 1; }
+    _src || exit 1
+    exec ros2 param set /attack_injector mode "$1"
+    ;;
+  safety)
+    case "$1" in
+      on|true)  val=true ;;
+      off|false) val=false ;;
+      *) echo "usage: ids safety <on|off>"; exit 1 ;;
+    esac
+    _src || exit 1
+    exec ros2 param set /physguard safety_enabled "$val"
+    ;;
+  wire)
+    _src || exit 1
+    wire_py="$WS/install/physguard/share/physguard/tools/wire_collector.py"
+    [ -f "$wire_py" ] || wire_py="$WS/src/physguard/tools/wire_collector.py"
+    exec python3 "$wire_py" --domain "${ROS_DOMAIN_ID:-42}" --iface any
+    ;;
+  console)
+    _src || exit 1
+    [ -d "$CONSOLE" ] || { echo "[ids] console not found at $CONSOLE - set IDS_CONSOLE"; exit 1; }
+    cd "$CONSOLE" || exit 1
+    echo "[ids] console on http://<this-ip>:8088  (ids console -- --dry-run to preview)"
+    exec python3 ids_console.py "$@"
+    ;;
+  nodes)
+    _src || exit 1
+    ros2 daemon stop >/dev/null 2>&1
+    exec ros2 node list
+    ;;
+  clean)
+    _src || exit 1
+    _clean
+    ;;
+  shell)
+    _src || exit 1
+    echo "[ids] sourced shell - exit to leave"
+    exec bash
+    ;;
+  help|-h|--help|"")
+    sed -n '26,38p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    ;;
+  *)
+    echo "[ids] unknown command '$cmd' - try: ids help"; exit 1
+    ;;
+esac
