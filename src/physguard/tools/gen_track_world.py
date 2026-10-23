@@ -162,6 +162,80 @@ def wheel(side, y):
 """
 
 
+def _static_box(name, x, y, z, sx, sy, sz, rgb, yaw=0.0):
+    r, g, b = rgb
+    return f"""    <model name="{name}">
+      <static>true</static>
+      <pose>{x:.3f} {y:.3f} {z:.3f} 0 0 {yaw:.4f}</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>{sx:.3f} {sy:.3f} {sz:.3f}</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>{sx:.3f} {sy:.3f} {sz:.3f}</size></box></geometry>
+          <material><ambient>{r} {g} {b} 1</ambient><diffuse>{r} {g} {b} 1</diffuse></material></visual>
+      </link>
+    </model>
+"""
+
+
+def _static_cyl(name, x, y, z, radius, h, rgb):
+    r, g, b = rgb
+    return f"""    <model name="{name}">
+      <static>true</static>
+      <pose>{x:.3f} {y:.3f} {z:.3f} 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><cylinder><radius>{radius:.3f}</radius><length>{h:.3f}</length></cylinder></geometry></collision>
+        <visual name="v"><geometry><cylinder><radius>{radius:.3f}</radius><length>{h:.3f}</length></cylinder></geometry>
+          <material><ambient>{r} {g} {b} 1</ambient><diffuse>{r} {g} {b} 1</diffuse></material></visual>
+      </link>
+    </model>
+"""
+
+
+def scene_models(t):
+    """Static arena around the oval: perimeter walls plus obstacles, all placed
+    clear of the racing line so pure pursuit still laps cleanly, but rich enough
+    that the lidar has distinct features to map (SLAM) and navigate around (Nav2).
+    The oval centre is (0, 2R); the track band is |centreline| +/- W/2, so every
+    obstacle below is kept >= ~1 m from the centreline."""
+    R, W = t.R, t.width
+    cy = R                                   # track centre y
+    grey, tan, slate = (0.55, 0.57, 0.60), (0.80, 0.72, 0.55), (0.42, 0.45, 0.50)
+    red, blue, yellow, orange = (0.80, 0.22, 0.20), (0.20, 0.40, 0.75), \
+        (0.90, 0.75, 0.15), (0.95, 0.55, 0.12)
+    out = []
+
+    # ---- perimeter walls: rectangle x in [-9,9], y in [cy-7, cy+7] ----
+    x0, x1, y0, y1 = -9.0, 9.0, cy - 7.0, cy + 7.0
+    hw, th, wh = (x1 - x0), 0.10, 0.6        # width, thickness, height
+    dh = (y1 - y0)
+    walls = [
+        ("wall_s", 0.0, y0, hw, th), ("wall_n", 0.0, y1, hw, th),
+        ("wall_w", x0, cy, th, dh), ("wall_e", x1, cy, th, dh),
+    ]
+    for nm, x, y, sx, sy in walls:
+        out.append(_static_box(nm, x, y, wh / 2, sx, sy, wh, slate))
+
+    # ---- infield island: obstacles inside the oval, around (0, cy) ----
+    out.append(_static_cyl("infield_pillar", 0.0, cy, 0.35, 0.18, 0.70, grey))
+    out.append(_static_box("infield_box_l", -1.1, cy + 0.3, 0.25, 0.4, 0.4, 0.5, red))
+    out.append(_static_box("infield_box_r", 1.0, cy - 0.5, 0.20, 0.5, 0.3, 0.4, yellow))
+
+    # ---- outfield obstacles: corners and mid-sides (SLAM landmarks) ----
+    out.append(_static_box("crate_tl_1", -7.0, cy + 5.0, 0.30, 0.6, 0.6, 0.6, tan))
+    out.append(_static_box("crate_tl_2", -7.0, cy + 5.7, 0.20, 0.5, 0.5, 0.4, tan))
+    out.append(_static_cyl("pillar_tr", 7.0, cy + 5.0, 0.50, 0.30, 1.00, grey))
+    out.append(_static_box("crate_bl", -7.0, cy - 5.0, 0.30, 0.7, 0.5, 0.6, tan))
+    out.append(_static_cyl("drum_br", 7.0, cy - 5.0, 0.40, 0.30, 0.80, blue))
+    out.append(_static_cyl("pillar_w", -7.8, cy, 0.45, 0.22, 0.90, grey))
+    out.append(_static_cyl("pillar_e", 7.8, cy, 0.45, 0.22, 0.90, grey))
+
+    # ---- cone rows lining the straights (1.3 m clear of the centreline) ----
+    for i, x in enumerate((-3.0, -1.5, 0.0, 1.5, 3.0)):
+        out.append(_static_cyl(f"cone_s_{i}", x, -1.3, 0.15, 0.08, 0.30, orange))
+        out.append(_static_cyl(f"cone_n_{i}", x, 2 * R + 1.3, 0.15, 0.08, 0.30, orange))
+
+    return "".join(out)
+
+
 def world(t, with_robot=True, name="oval_track"):
     robot = ROBOT.replace("WHEELS", wheel("left", 0.125) + wheel("right", -0.125)) \
         if with_robot else ""
@@ -222,6 +296,7 @@ def world(t, with_robot=True, name="oval_track"):
     </model>
 
 {track_model(t)}
+{scene_models(t)}
 {robot}
   </world>
 </sdf>

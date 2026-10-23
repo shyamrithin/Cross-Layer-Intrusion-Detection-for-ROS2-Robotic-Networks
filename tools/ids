@@ -26,6 +26,7 @@
 #   ids demo [fake|gazebo]      cleanup + launch the bench (RViz2, IDS, plant)
 #   ids bench <args...>         launch the bench with raw launch args, e.g.
 #                               ids bench attacker:=true wire:=true
+#   ids slam                    map the arena with slam_toolbox (drives the oval)
 #   ids attack                  run the attacker, idle (switch modes from another shell)
 #   ids spoof                   run the attacker as a spoofed /pure_pursuit, hijacking
 #   ids mode <name>             set attacker mode: none garbage inject stealth hijack flood
@@ -88,6 +89,12 @@ case "$cmd" in
     _clean
     exec ros2 launch physguard bench.launch.py "$@"
     ;;
+  slam)
+    _src || exit 1
+    _clean
+    echo "[ids] SLAM demo - robot laps the oval and maps the arena (slam_toolbox + RViz)"
+    exec ros2 launch physguard slam.launch.py "$@"
+    ;;
   attack)
     _src || exit 1
     echo "[ids] attacker up (idle). From another shell: ids mode hijack"
@@ -140,7 +147,7 @@ case "$cmd" in
     exec bash
     ;;
   help|-h|--help|"")
-    sed -n '26,38p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '26,39p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
     ;;
   *)
     echo "[ids] unknown command '$cmd' - try: ids help"; exit 1

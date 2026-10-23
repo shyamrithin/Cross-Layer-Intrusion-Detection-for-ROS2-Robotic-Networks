@@ -1173,6 +1173,223 @@
       </link>
     </model>
 
+    <model name="wall_s">
+      <static>true</static>
+      <pose>0.000 -5.000 0.300 0 0 0.0000</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>18.000 0.100 0.600</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>18.000 0.100 0.600</size></box></geometry>
+          <material><ambient>0.42 0.45 0.5 1</ambient><diffuse>0.42 0.45 0.5 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="wall_n">
+      <static>true</static>
+      <pose>0.000 9.000 0.300 0 0 0.0000</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>18.000 0.100 0.600</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>18.000 0.100 0.600</size></box></geometry>
+          <material><ambient>0.42 0.45 0.5 1</ambient><diffuse>0.42 0.45 0.5 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="wall_w">
+      <static>true</static>
+      <pose>-9.000 2.000 0.300 0 0 0.0000</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>0.100 14.000 0.600</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.100 14.000 0.600</size></box></geometry>
+          <material><ambient>0.42 0.45 0.5 1</ambient><diffuse>0.42 0.45 0.5 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="wall_e">
+      <static>true</static>
+      <pose>9.000 2.000 0.300 0 0 0.0000</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>0.100 14.000 0.600</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.100 14.000 0.600</size></box></geometry>
+          <material><ambient>0.42 0.45 0.5 1</ambient><diffuse>0.42 0.45 0.5 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="infield_pillar">
+      <static>true</static>
+      <pose>0.000 2.000 0.350 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><cylinder><radius>0.180</radius><length>0.700</length></cylinder></geometry></collision>
+        <visual name="v"><geometry><cylinder><radius>0.180</radius><length>0.700</length></cylinder></geometry>
+          <material><ambient>0.55 0.57 0.6 1</ambient><diffuse>0.55 0.57 0.6 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="infield_box_l">
+      <static>true</static>
+      <pose>-1.100 2.300 0.250 0 0 0.0000</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>0.400 0.400 0.500</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.400 0.400 0.500</size></box></geometry>
+          <material><ambient>0.8 0.22 0.2 1</ambient><diffuse>0.8 0.22 0.2 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="infield_box_r">
+      <static>true</static>
+      <pose>1.000 1.500 0.200 0 0 0.0000</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>0.500 0.300 0.400</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.500 0.300 0.400</size></box></geometry>
+          <material><ambient>0.9 0.75 0.15 1</ambient><diffuse>0.9 0.75 0.15 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="crate_tl_1">
+      <static>true</static>
+      <pose>-7.000 7.000 0.300 0 0 0.0000</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>0.600 0.600 0.600</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.600 0.600 0.600</size></box></geometry>
+          <material><ambient>0.8 0.72 0.55 1</ambient><diffuse>0.8 0.72 0.55 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="crate_tl_2">
+      <static>true</static>
+      <pose>-7.000 7.700 0.200 0 0 0.0000</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>0.500 0.500 0.400</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.500 0.500 0.400</size></box></geometry>
+          <material><ambient>0.8 0.72 0.55 1</ambient><diffuse>0.8 0.72 0.55 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="pillar_tr">
+      <static>true</static>
+      <pose>7.000 7.000 0.500 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><cylinder><radius>0.300</radius><length>1.000</length></cylinder></geometry></collision>
+        <visual name="v"><geometry><cylinder><radius>0.300</radius><length>1.000</length></cylinder></geometry>
+          <material><ambient>0.55 0.57 0.6 1</ambient><diffuse>0.55 0.57 0.6 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="crate_bl">
+      <static>true</static>
+      <pose>-7.000 -3.000 0.300 0 0 0.0000</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>0.700 0.500 0.600</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.700 0.500 0.600</size></box></geometry>
+          <material><ambient>0.8 0.72 0.55 1</ambient><diffuse>0.8 0.72 0.55 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="drum_br">
+      <static>true</static>
+      <pose>7.000 -3.000 0.400 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><cylinder><radius>0.300</radius><length>0.800</length></cylinder></geometry></collision>
+        <visual name="v"><geometry><cylinder><radius>0.300</radius><length>0.800</length></cylinder></geometry>
+          <material><ambient>0.2 0.4 0.75 1</ambient><diffuse>0.2 0.4 0.75 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="pillar_w">
+      <static>true</static>
+      <pose>-7.800 2.000 0.450 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><cylinder><radius>0.220</radius><length>0.900</length></cylinder></geometry></collision>
+        <visual name="v"><geometry><cylinder><radius>0.220</radius><length>0.900</length></cylinder></geometry>
+          <material><ambient>0.55 0.57 0.6 1</ambient><diffuse>0.55 0.57 0.6 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="pillar_e">
+      <static>true</static>
+      <pose>7.800 2.000 0.450 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><cylinder><radius>0.220</radius><length>0.900</length></cylinder></geometry></collision>
+        <visual name="v"><geometry><cylinder><radius>0.220</radius><length>0.900</length></cylinder></geometry>
+          <material><ambient>0.55 0.57 0.6 1</ambient><diffuse>0.55 0.57 0.6 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="cone_s_0">
+      <static>true</static>
+      <pose>-3.000 -1.300 0.150 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><cylinder><radius>0.080</radius><length>0.300</length></cylinder></geometry></collision>
+        <visual name="v"><geometry><cylinder><radius>0.080</radius><length>0.300</length></cylinder></geometry>
+          <material><ambient>0.95 0.55 0.12 1</ambient><diffuse>0.95 0.55 0.12 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="cone_n_0">
+      <static>true</static>
+      <pose>-3.000 5.300 0.150 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><cylinder><radius>0.080</radius><length>0.300</length></cylinder></geometry></collision>
+        <visual name="v"><geometry><cylinder><radius>0.080</radius><length>0.300</length></cylinder></geometry>
+          <material><ambient>0.95 0.55 0.12 1</ambient><diffuse>0.95 0.55 0.12 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="cone_s_1">
+      <static>true</static>
+      <pose>-1.500 -1.300 0.150 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><cylinder><radius>0.080</radius><length>0.300</length></cylinder></geometry></collision>
+        <visual name="v"><geometry><cylinder><radius>0.080</radius><length>0.300</length></cylinder></geometry>
+          <material><ambient>0.95 0.55 0.12 1</ambient><diffuse>0.95 0.55 0.12 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="cone_n_1">
+      <static>true</static>
+      <pose>-1.500 5.300 0.150 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><cylinder><radius>0.080</radius><length>0.300</length></cylinder></geometry></collision>
+        <visual name="v"><geometry><cylinder><radius>0.080</radius><length>0.300</length></cylinder></geometry>
+          <material><ambient>0.95 0.55 0.12 1</ambient><diffuse>0.95 0.55 0.12 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="cone_s_2">
+      <static>true</static>
+      <pose>0.000 -1.300 0.150 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><cylinder><radius>0.080</radius><length>0.300</length></cylinder></geometry></collision>
+        <visual name="v"><geometry><cylinder><radius>0.080</radius><length>0.300</length></cylinder></geometry>
+          <material><ambient>0.95 0.55 0.12 1</ambient><diffuse>0.95 0.55 0.12 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="cone_n_2">
+      <static>true</static>
+      <pose>0.000 5.300 0.150 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><cylinder><radius>0.080</radius><length>0.300</length></cylinder></geometry></collision>
+        <visual name="v"><geometry><cylinder><radius>0.080</radius><length>0.300</length></cylinder></geometry>
+          <material><ambient>0.95 0.55 0.12 1</ambient><diffuse>0.95 0.55 0.12 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="cone_s_3">
+      <static>true</static>
+      <pose>1.500 -1.300 0.150 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><cylinder><radius>0.080</radius><length>0.300</length></cylinder></geometry></collision>
+        <visual name="v"><geometry><cylinder><radius>0.080</radius><length>0.300</length></cylinder></geometry>
+          <material><ambient>0.95 0.55 0.12 1</ambient><diffuse>0.95 0.55 0.12 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="cone_n_3">
+      <static>true</static>
+      <pose>1.500 5.300 0.150 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><cylinder><radius>0.080</radius><length>0.300</length></cylinder></geometry></collision>
+        <visual name="v"><geometry><cylinder><radius>0.080</radius><length>0.300</length></cylinder></geometry>
+          <material><ambient>0.95 0.55 0.12 1</ambient><diffuse>0.95 0.55 0.12 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="cone_s_4">
+      <static>true</static>
+      <pose>3.000 -1.300 0.150 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><cylinder><radius>0.080</radius><length>0.300</length></cylinder></geometry></collision>
+        <visual name="v"><geometry><cylinder><radius>0.080</radius><length>0.300</length></cylinder></geometry>
+          <material><ambient>0.95 0.55 0.12 1</ambient><diffuse>0.95 0.55 0.12 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="cone_n_4">
+      <static>true</static>
+      <pose>3.000 5.300 0.150 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><cylinder><radius>0.080</radius><length>0.300</length></cylinder></geometry></collision>
+        <visual name="v"><geometry><cylinder><radius>0.080</radius><length>0.300</length></cylinder></geometry>
+          <material><ambient>0.95 0.55 0.12 1</ambient><diffuse>0.95 0.55 0.12 1</diffuse></material></visual>
+      </link>
+    </model>
+
 
   </world>
 </sdf>

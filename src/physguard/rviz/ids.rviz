@@ -48,10 +48,17 @@ Visualization Manager:
       Topic: {Value: /physguard/markers}
     - Class: rviz_default_plugins/LaserScan
       Name: LaserScan
-      Enabled: false
+      Enabled: true
       Topic: {Value: /scan, Reliability Policy: Best Effort}
-      Size (m): 0.03
+      Size (m): 0.04
+      Style: Points
       Color: 255; 120; 0
+    - Class: rviz_default_plugins/Map
+      Name: Map
+      Enabled: true
+      Topic: {Value: /map, Durability Policy: Transient Local, Reliability Policy: Reliable}
+      Color Scheme: map
+      Alpha: 0.7
   Enabled: true
   Global Options:
     Background Color: 242; 243; 245
@@ -61,6 +68,10 @@ Visualization Manager:
     - Class: rviz_default_plugins/MoveCamera
     - Class: rviz_default_plugins/FocusCamera
     - Class: rviz_default_plugins/Measure
+    - Class: rviz_default_plugins/SetInitialPose
+      Topic: {Value: /initialpose}
+    - Class: rviz_default_plugins/SetGoal
+      Topic: {Value: /goal_pose}
   Views:
     Current:
       Class: rviz_default_plugins/TopDownOrtho
