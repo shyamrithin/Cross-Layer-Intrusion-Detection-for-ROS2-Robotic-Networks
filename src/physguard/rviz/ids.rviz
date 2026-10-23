@@ -1,0 +1,77 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+    Help Height: 0
+  - Class: rviz_common/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 1
+      Plane Cell Count: 20
+      Color: 160; 160; 160
+      Reference Frame: <Fixed Frame>
+      Offset: {X: 0, Y: 2, Z: 0}
+    - Class: rviz_default_plugins/RobotModel
+      Name: RobotModel
+      Enabled: true
+      Description Source: Topic
+      Description Topic:
+        Value: /robot_description
+        Durability Policy: Transient Local
+        Reliability Policy: Reliable
+      Visual Enabled: true
+      Collision Enabled: false
+      Alpha: 1
+    - Class: rviz_default_plugins/TF
+      Name: TF
+      Enabled: true
+      Show Names: true
+      Show Axes: true
+      Marker Scale: 0.3
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Track and trail
+      Enabled: true
+      Topic: {Value: /track/markers}
+    - Class: rviz_default_plugins/Path
+      Name: Reference path
+      Enabled: true
+      Color: 150; 150; 150
+      Line Style: Lines
+      Topic: {Value: /track/reference, Durability Policy: Transient Local}
+    - Class: rviz_default_plugins/MarkerArray
+      Name: IDS status
+      Enabled: true
+      Topic: {Value: /physguard/markers}
+    - Class: rviz_default_plugins/LaserScan
+      Name: LaserScan
+      Enabled: false
+      Topic: {Value: /scan, Reliability Policy: Best Effort}
+      Size (m): 0.03
+      Color: 255; 120; 0
+  Enabled: true
+  Global Options:
+    Background Color: 242; 243; 245
+    Fixed Frame: odom
+    Frame Rate: 30
+  Tools:
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/FocusCamera
+    - Class: rviz_default_plugins/Measure
+  Views:
+    Current:
+      Class: rviz_default_plugins/TopDownOrtho
+      Name: Current View
+      Angle: 0
+      Scale: 80
+      X: 0
+      Y: 2
+      Near Clip Distance: 0.01
+    Saved: ~
+Window Geometry:
+  Width: 1280
+  Height: 800
+  Displays: {collapsed: false}

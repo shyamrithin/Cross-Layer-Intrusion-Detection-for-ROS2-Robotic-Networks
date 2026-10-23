@@ -76,6 +76,10 @@ case "$cmd" in
     sim="${1:-fake}"
     _src || exit 1
     _clean
+    if [ "$sim" = "gazebo" ]; then
+      echo "[ids] launching Gazebo bench (URDF robot) - wait for 'IDS armed'"
+      exec ros2 launch physguard gazebo.launch.py
+    fi
     echo "[ids] launching bench (sim:=$sim) - wait for 'IDS armed'"
     exec ros2 launch physguard bench.launch.py sim:="$sim"
     ;;

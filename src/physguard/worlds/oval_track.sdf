@@ -7,6 +7,8 @@
  Description : Gazebo Harmonic world with an oval track (6.0 m straights,
                2.0 m radius, 0.8 m wide) and a differential-drive
                robot matching articubot_one (r = 32.5 mm, separation 250 mm).
+               with_robot=False emits a robot-free world for the URDF
+               spawn workflow (adds the gz Sensors system for the lidar).
                Do not edit by hand; regenerate instead.
 ================================================================================
 -->

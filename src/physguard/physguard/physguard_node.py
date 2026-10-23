@@ -40,6 +40,7 @@
 #   residual_eps, cusum_tau                    -> thresholds
 # =============================================================================
 import csv
+import json
 import math
 import os
 import statistics
@@ -101,6 +102,10 @@ class IDSNode(Node):
         self.p_alt = self.create_publisher(Bool, 'physguard/alert', 10)
         self.p_sts = self.create_publisher(String, 'physguard/status', 10)
         self.p_mrk = self.create_publisher(MarkerArray, 'physguard/markers', 10)
+        # One compact JSON topic that mirrors the full detector state, so the
+        # web console can render every component (layers, residual, CUSUM,
+        # safety latch, live publisher set) from a single subscription.
+        self.p_tel = self.create_publisher(String, 'physguard/telemetry', 10)
 
         self.csv = None
         if g('log_csv'):
@@ -218,6 +223,37 @@ class IDSNode(Node):
         else:
             label = 'CLEAR'
         self.publish_markers(alarm, calibrating, label)
+
+        tele = {
+            't': round(t, 2),
+            'armed': (not calibrating),
+            'calibrating': calibrating,
+            'calib_remaining': round(max(0.0, self.calib_s - t), 1) if calibrating else 0.0,
+            'eps': round(self.det.cfg.residual_eps, 5),
+            'residual': round(float(st.residual), 5),
+            'cusum': round(float(st.cusum), 4),
+            'cusum_tau': round(float(g('cusum_tau')), 2),
+            'cusum_clip': round(float(self.det.cfg.cusum_clip), 2),
+            'net_enabled': bool(g('net_enabled')),
+            'phy_enabled': bool(g('phy_enabled')),
+            'net_fired': bool(st.net_fired),
+            'phy_fired': bool(st.phy_fired),
+            'fused': bool(st.fused),
+            'alarm': bool(alarm),
+            'safety_enabled': bool(g('safety_enabled')),
+            'safety_engaged': bool(self.latch.engaged),
+            'safety_quiet': round(float(self.latch.quiet), 2),
+            'release_s': round(float(g('release_s')), 2),
+            'churn': round(float(churn), 1),
+            'churn_thresh': round(float(g('churn_thresh')), 1),
+            'publishers': sorted(pubs),
+            'allowlist': list(self.det.cfg.allowlist),
+            'wire': [round(self.wire_v, 4), round(self.wire_w, 4)],
+            'auth': [round(self.auth_v, 4), round(self.auth_w, 4)],
+            'meas': [round(self.meas_v, 4), round(self.meas_w, 4)],
+            'reasons': list(st.reasons),
+        }
+        self.p_tel.publish(String(data=json.dumps(tele, separators=(',', ':'))))
 
         if self.csv:
             self.w.writerow([f'{t:.3f}', f'{self.wire_v:.4f}', f'{self.wire_w:.4f}',

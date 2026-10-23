@@ -162,8 +162,14 @@ def wheel(side, y):
 """
 
 
-def world(t):
-    robot = ROBOT.replace("WHEELS", wheel("left", 0.125) + wheel("right", -0.125))
+def world(t, with_robot=True, name="oval_track"):
+    robot = ROBOT.replace("WHEELS", wheel("left", 0.125) + wheel("right", -0.125)) \
+        if with_robot else ""
+    sensors = "" if with_robot else (
+        '    <plugin filename="gz-sim-sensors-system" '
+        'name="gz::sim::systems::Sensors">\n'
+        '      <render_engine>ogre2</render_engine>\n'
+        '    </plugin>\n')
     return f"""<?xml version="1.0" ?>
 <!--
 ================================================================================
@@ -173,11 +179,13 @@ def world(t):
  Description : Gazebo Harmonic world with an oval track ({t.L:.1f} m straights,
                {t.R:.1f} m radius, {t.width:.1f} m wide) and a differential-drive
                robot matching articubot_one (r = 32.5 mm, separation 250 mm).
+               with_robot=False emits a robot-free world for the URDF
+               spawn workflow (adds the gz Sensors system for the lidar).
                Do not edit by hand; regenerate instead.
 ================================================================================
 -->
 <sdf version="1.9">
-  <world name="oval_track">
+  <world name="{name}">
     <physics name="1ms" type="ignored">
       <max_step_size>0.001</max_step_size>
       <real_time_factor>1.0</real_time_factor>
@@ -185,7 +193,7 @@ def world(t):
     <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
     <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
     <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
-
+{sensors}
     <gui fullscreen="0">
       <camera name="user_camera">
         <pose>0 -7.5 7.0 0 0.72 1.5708</pose>
@@ -222,10 +230,19 @@ def world(t):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default=os.path.join(os.path.dirname(__file__), "..",
-                                                  "worlds", "oval_track.sdf"))
+    here = os.path.dirname(__file__)
+    worlds = os.path.join(here, "..", "worlds")
+    ap.add_argument("--out", default=None, help="single output path (legacy)")
     a = ap.parse_args()
-    os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
-    with open(a.out, "w") as f:
-        f.write(world(OvalTrack()))
-    print("written", os.path.abspath(a.out))
+    os.makedirs(worlds, exist_ok=True)
+    t = OvalTrack()
+    if a.out:
+        open(a.out, "w").write(world(t))
+        print("written", a.out); raise SystemExit
+    # robot-free world for the URDF spawn workflow (the proper structure)
+    open(os.path.join(worlds, "ids_world.sdf"), "w").write(
+        world(t, with_robot=False, name="ids_world"))
+    # legacy world with the robot embedded, kept for backward compatibility
+    open(os.path.join(worlds, "oval_track.sdf"), "w").write(
+        world(t, with_robot=True, name="oval_track"))
+    print("written worlds/ids_world.sdf and worlds/oval_track.sdf")

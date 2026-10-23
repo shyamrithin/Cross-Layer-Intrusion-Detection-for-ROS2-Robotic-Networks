@@ -57,6 +57,7 @@ STATE = {
     "procs": {},        # pid -> {id, label, cmd, cat, started, rc}
     "logs": deque(maxlen=400),
     "verdict": {"status": "unknown", "track": "unknown", "xte": None, "ts": 0.0},
+    "tele": {},        # parsed /physguard/telemetry (full detector state)
 }
 LOCK = threading.Lock()
 ARGS = None
@@ -167,6 +168,40 @@ def tail_topic(topic, key, msgtype="std_msgs/msg/String", numeric=False):
         time.sleep(2.0)
 
 
+def tail_telemetry(topic):
+    """Subscribe to the detector's JSON telemetry topic and keep the latest
+    decoded object in STATE['tele']. ros2 echo may YAML-quote the payload, so
+    the brace substring is extracted and json-decoded with a couple of
+    fallbacks."""
+    if ARGS.dry_run:
+        return
+    cmd = ["ros2", "topic", "echo", "--field", "data", topic, "std_msgs/msg/String"]
+    while True:
+        try:
+            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                                 text=True, bufsize=1)
+            for raw in iter(p.stdout.readline, ""):
+                line = raw.strip()
+                if not line or line == "---":
+                    continue
+                i, j = line.find("{"), line.rfind("}")
+                if i < 0 or j <= i:
+                    continue
+                frag = line[i:j + 1]
+                for cand in (frag, frag.replace("''", "'"), frag.replace('\\"', '"')):
+                    try:
+                        obj = json.loads(cand)
+                    except Exception:
+                        continue
+                    with LOCK:
+                        obj["ts"] = time.time()
+                        STATE["tele"] = obj
+                    break
+        except Exception:
+            pass
+        time.sleep(2.0)
+
+
 # ---------------------------------------------------------------------------
 # http
 # ---------------------------------------------------------------------------
@@ -200,7 +235,7 @@ class Handler(BaseHTTPRequestHandler):
                           "secs": round(time.time() - r["started"])}
                          for pid, r in STATE["procs"].items()]
                 out = {"procs": procs, "logs": list(STATE["logs"])[-120:],
-                       "verdict": STATE["verdict"]}
+                       "verdict": STATE["verdict"], "tele": STATE["tele"]}
             return self._send(200, json.dumps(out))
         return self._send(404, json.dumps({"error": "not found"}))
 
@@ -221,7 +256,8 @@ class Handler(BaseHTTPRequestHandler):
 
 def _pub(i):
     return {k: i.get(k) for k in ("id", "cat", "label", "layer", "persistent",
-                                  "needs", "danger", "runs_on", "desc", "cmd_resolved")}
+                                  "needs", "danger", "runs_on", "desc", "method",
+                                  "cmd_resolved")}
 
 
 def main():
@@ -234,6 +270,7 @@ def main():
     ap.add_argument("--status-topic", default="/physguard/status")
     ap.add_argument("--track-topic", default="/track/state")
     ap.add_argument("--xte-topic", default="/track/xte")
+    ap.add_argument("--tele-topic", default="/physguard/telemetry")
     ARGS = ap.parse_args()
     CATALOG = load_catalog()
 
@@ -243,6 +280,8 @@ def main():
                      daemon=True).start()
     threading.Thread(target=tail_topic,
                      args=(ARGS.xte_topic, "xte", "std_msgs/msg/Float32", True),
+                     daemon=True).start()
+    threading.Thread(target=tail_telemetry, args=(ARGS.tele_topic,),
                      daemon=True).start()
 
     mode = "DRY-RUN (nothing launches)" if ARGS.dry_run else "LIVE"
