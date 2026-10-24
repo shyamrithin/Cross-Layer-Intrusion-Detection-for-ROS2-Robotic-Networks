@@ -142,7 +142,7 @@ case "$cmd" in
     _src || exit 1
     [ -d "$CONSOLE" ] || { echo "[ids] console not found at $CONSOLE - set IDS_CONSOLE"; exit 1; }
     cd "$CONSOLE" || exit 1
-    echo "[ids] console on http://<this-ip>:8088  (ids console -- --dry-run to preview)"
+    echo "[ids] console on http://<this-ip>:8088  (ids console --dry-run to preview)"
     exec python3 ids_console.py "$@"
     ;;
   nodes)

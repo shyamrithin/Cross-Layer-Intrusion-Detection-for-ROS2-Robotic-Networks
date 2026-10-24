@@ -75,7 +75,21 @@ and the network layer is quiet.
 
 ## Results
 
-**Live, ROS 2 Humble, built-in simulator** (hijack attack, attacker on the
+**Live, Gazebo Harmonic digital twin of the robot** (hard-spin injection,
+w = 4.0 rad/s at 100 Hz on the command wire while the controller commanded
+0.18 rad/s):
+
+- Both layers fired: unknown publisher on `/cmd_vel_raw` (network), and
+  |w| > w_max plus CUSUM 3.36 > tau 3.0 (physics)
+- Safety filter forwarded the authorized command; the robot returned to the
+  racing line on its own
+- Threshold calibrated in 20 s of benign driving (eps = 0.010, the floor)
+- Simulation fidelity: wheel odometry stays within **0.007 m** of Gazebo ground
+  truth (it drifted ~3.8 m before the Gazebo layer was rebuilt)
+
+![RViz2 during the injection: red trail under attack, green after recovery](docs/fig8_rviz_recovery.png)
+
+**Live, ROS 2 Humble, built-in kinematic simulator** (hijack attack, attacker on the
 command topic):
 
 | Run | Detected after | Peak deviation | Back on track |
@@ -131,19 +145,60 @@ ids spoof                # attacker disguised as the legitimate controller
 ids help                 # all commands
 ```
 
-Gazebo needs the Harmonic bridge (`ros-humble-ros-gzharmonic`).
+Gazebo needs the Harmonic bridge (`ros-humble-ros-gzharmonic`). Run `ids clean`
+before every relaunch to clear stale `gz sim` / ruby processes.
 
-## Evaluation console
+### Gazebo bench
+
+`ids demo gazebo` brings up a robot-free arena (oval track, walls, obstacles),
+spawns the robot with the real wheel geometry (r = 32.5 mm, separation 250 mm),
+and couples RViz2 to Gazebo exactly:
+
+- the gz DiffDrive system publishes wheel odometry `/odom` (what the detector
+  uses, as on the real robot)
+- a gz OdometryPublisher publishes the true pose `/ground_truth` (sim only)
+- `sim_frames` publishes `odom -> base_link` from `/odom` and `world -> odom`
+  from ground truth, so with RViz fixed frame `world` the robot and lidar scan
+  sit exactly where Gazebo has them
+- the controller and the scorer use `/ground_truth` by default
+  (`pose_topic:=/odom` for the realistic, drifting setup); the detector always
+  uses raw `/odom`
+- all bridged topics are in `config/gz_bridge.yaml`
+
+`ids slam` maps the arena with slam_toolbox while the robot laps.
+
+## IDS Monitor (evaluation console)
 
 A web dashboard (Python standard library only) that launches a fixed catalogue
-of attacks and network-analysis tools by id, shows the exact command for
-each, and displays which detector layer fired and the fused verdict live.
-Every entry is tagged with the layer expected to catch it, so the console
-doubles as the evaluation scoreboard.
+of 50 attacks and network-analysis tools by id and shows the detector live:
+
+- dataflow view with the firing layer lit, safety-filter state, allowlisted vs
+  rogue publishers
+- toolbar toggles for the safety filter and each layer (live ablation)
+- live charts: residual vs eps, CUSUM vs tau, wire vs authorized command,
+  true track deviation and odometry drift, DDS traffic from the wire collector
+- episode scoreboard (detection latency, layer, blocked, peak deviation,
+  recovery) and CSV recording / export
 
 ```bash
-ids console --dry-run    # preview commands, launch nothing
 ids console              # http://localhost:8088
+ids console --demo       # synthetic feed, no ROS needed (UI preview)
+ids console --dry-run    # show commands, launch nothing
+```
+
+![IDS Monitor during an injection](docs/fig10_dashboard.png)
+
+## Wireshark
+
+[`wireshark/`](wireshark/) holds a per-user Wireshark profile and a Lua
+decoder that turn RTPS packets into readable rows: kind (command wire /
+authorized / motors, sensor, discovery), ROS topic, writer number (W1 is the
+first writer on a topic, W2+ are extra publishers), and decoded velocity
+commands flagged when infeasible.
+
+```bash
+bash wireshark/install.sh
+ids wireshark            # start BEFORE the bench; captures only the domain's DDS ports
 ```
 
 Two-laptop setup: [`console/README.md`](console/README.md).
@@ -156,14 +211,18 @@ Two-laptop setup: [`console/README.md`](console/README.md).
 │   │                         pure-pursuit controller, attack injector, track
 │   │                         geometry + RViz visualisation, built-in simulator,
 │   │                         offline evaluation scripts
-│   ├── launch/               bench.launch.py (full bench), track_demo.launch.py
-│   ├── worlds/               Gazebo Harmonic oval-track world
-│   ├── rviz/                 RViz2 config
+│   ├── launch/               gazebo.launch.py (Gazebo bench), slam.launch.py,
+│   │                         bench.launch.py (built-in simulator), track_demo.launch.py
+│   ├── urdf/                 robot description (3-point contact, ground-truth plugin)
+│   ├── config/               gz_bridge.yaml, slam_toolbox.yaml
+│   ├── worlds/               Gazebo Harmonic arena worlds (generated)
+│   ├── rviz/                 RViz2 configs (ids_world.rviz for Gazebo)
 │   └── tools/                wire_collector.py (tshark DDS sensor),
 │                             gen_track_world.py
-├── console/                  evaluation console (server, catalogue, UI)
+├── console/                  IDS Monitor (server, catalogue, UI)
+├── wireshark/                ROS2-IDS Wireshark profile + ros2_ids.lua decoder
 ├── tools/                    ids helper, DDS environment, Fast DDS UDP profile
-└── docs/                     result figures
+└── docs/                     result figures, review2/ presentation
 ```
 
 The ROS package is named `physguard` for historical reasons; it is the
@@ -183,7 +242,9 @@ cross-layer IDS.
   network-exposed path is the wire.
 - In the live node the network layer watches publishers on the command topic;
   DDS-wide discovery and traffic rates are measured by the separate wire
-  collector, which is not yet fused into the detector.
+  collector and shown on the monitor, but are not yet fused into the detector.
+- In the Gazebo bench the residual noise is low enough that the calibrated
+  threshold sits at its 0.010 floor; it is recalibrated on hardware.
 
 ## Scope and ethics
 
