@@ -15,3 +15,7 @@ wire_metrics_*.csv
 *.swp
 .vscode/
 .idea/
+
+# console recordings
+console/logs/*
+!console/logs/.gitkeep

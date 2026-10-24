@@ -1,13 +1,13 @@
 {
-  "_comment": "Attack catalogue for the Cross-Layer IDS evaluation console. Each entry is a FIXED command launched by id; the console never runs arbitrary text from the browser. Placeholders {pkg} {cmd_topic} {auth_topic} {drive_topic} {robot_ip} {iface} {rtps_port} are filled from console config. 'layer' is the detector layer EXPECTED to catch it, used to score the cross-layer evaluation. LAB USE ONLY: every command targets the operator's own robot on an isolated ROS_DOMAIN_ID.",
+  "_comment": "Attack catalogue for the Cross-Layer IDS evaluation console. Each entry is a FIXED command launched by id; the console never runs arbitrary text from the browser. Placeholders {pkg} {cmd_topic} {auth_topic} {drive_topic} {robot_ip} {iface} {rtps_port} {domain} {wire_py} are filled from console config. 'layer' is the detector layer EXPECTED to catch it, used to score the cross-layer evaluation. LAB USE ONLY: every command targets the operator's own robot on an isolated ROS_DOMAIN_ID. Single-laptop runs: robot_ip 127.0.0.1 and iface lo (DDS goes over loopback). Two-laptop runs: the robot's LAN IP and your Wi-Fi/Ethernet interface. wire_py is found automatically; set it here only to override.",
   "config": {
     "domain": "42",
     "pkg": "physguard",
     "cmd_topic": "/cmd_vel_raw",
     "auth_topic": "/cmd_vel_auth",
     "drive_topic": "/cmd_vel",
-    "robot_ip": "192.168.1.50",
-    "iface": "wlan0",
+    "robot_ip": "127.0.0.1",
+    "iface": "lo",
     "rtps_port": "17912"
   },
   "attacks": [
@@ -583,10 +583,17 @@
   "tools": [
     {
       "id": "t_capture",
-      "label": "Wire capture (tshark)",
+      "label": "Wire capture (tshark metrics)",
       "persistent": true,
-      "cmd": "python3 ../src/physguard/tools/wire_collector.py --domain 42 --iface {iface}",
-      "desc": "Live DDS metrics and the two-writer / flood alerts."
+      "cmd": "mkdir -p logs && python3 -u {wire_py} --domain {domain} --iface {iface} --csv logs/wire_$(date +%Y%m%d_%H%M%S).csv",
+      "desc": "Per-second DDS metrics (packets, user data, endpoint announcements) and the multi-writer / discovery-flood / churn alerts. Feeds the DDS traffic chart. Needs packet-capture permission (wireshark group)."
+    },
+    {
+      "id": "t_wireshark",
+      "label": "Open Wireshark (DDS, ROS2-IDS view)",
+      "persistent": true,
+      "cmd": "wireshark -C ROS2-IDS -i {iface} -k -f \"udp portrange 17900-18149\" -Y \"ros2ids && ros2ids.kind != \\\"SIM\\\" && ros2ids.kind != \\\"RELIABILITY\\\" && ros2ids.kind != \\\"VIZ\\\"\"",
+      "desc": "Wireshark on this domain's DDS ports only, ROS2-IDS profile (readable kind/topic/writer/summary columns, decoded commands). Install the profile first (ros2_ids_wireshark/install.sh). Best started before the bench."
     },
     {
       "id": "t_arpscan",
