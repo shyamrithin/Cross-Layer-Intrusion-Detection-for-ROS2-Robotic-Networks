@@ -33,6 +33,7 @@
 #   ids safety <on|off>         enable/disable the inline safety filter
 #   ids wire                    run the tshark wire collector
 #   ids console                 run the web console
+#   ids wireshark               Wireshark on DDS traffic only, ROS2-IDS profile, demo view
 #   ids nodes                   list live ROS 2 nodes (restarts a stale daemon)
 #   ids clean                   kill stale sim processes and stop the daemon
 #   ids shell                   open a new shell with everything sourced
@@ -125,6 +126,18 @@ case "$cmd" in
     [ -f "$wire_py" ] || wire_py="$WS/src/physguard/tools/wire_collector.py"
     exec python3 "$wire_py" --domain "${ROS_DOMAIN_ID:-42}" --iface any
     ;;
+  wireshark)
+    # Capture only this domain's DDS ports (drops Gazebo's TCP transport and
+    # the dashboard's HTTP polling), open the ROS2-IDS profile in the demo view.
+    # Start it BEFORE the bench so topic names are learned from discovery.
+    _src || exit 1
+    lo=$((7400 + 250 * ${ROS_DOMAIN_ID:-42})); hi=$((lo + 249))
+    iface="${1:-lo}"
+    demo='ros2ids && ros2ids.kind != "SIM" && ros2ids.kind != "RELIABILITY" && ros2ids.kind != "VIZ"'
+    echo "[ids] wireshark on $iface, udp $lo-$hi, profile ROS2-IDS"
+    nohup wireshark -C ROS2-IDS -i "$iface" -k -f "udp portrange $lo-$hi" -Y "$demo" >/dev/null 2>&1 &
+    disown
+    ;;
   console)
     _src || exit 1
     [ -d "$CONSOLE" ] || { echo "[ids] console not found at $CONSOLE - set IDS_CONSOLE"; exit 1; }
@@ -147,7 +160,7 @@ case "$cmd" in
     exec bash
     ;;
   help|-h|--help|"")
-    sed -n '26,39p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '26,40p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
     ;;
   *)
     echo "[ids] unknown command '$cmd' - try: ids help"; exit 1

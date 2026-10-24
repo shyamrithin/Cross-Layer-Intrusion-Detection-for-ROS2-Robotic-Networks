@@ -1,0 +1,11 @@
+# ROS2-IDS profile preferences
+gui.column.format: 
+	"No.", "%m",
+	"Time", "%t",
+	"Port", "%uS",
+	"Kind", "%Cus:ros2ids.kind:0:R",
+	"Topic", "%Cus:ros2ids.topic:0:R",
+	"Writer", "%Cus:ros2ids.writer:0:R",
+	"Summary", "%i",
+	"Len", "%L"
+gui.time_format: RELATIVE

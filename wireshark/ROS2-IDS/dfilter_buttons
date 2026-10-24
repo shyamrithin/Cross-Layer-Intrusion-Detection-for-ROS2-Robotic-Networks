@@ -1,0 +1,10 @@
+# ROS2-IDS filter toolbar buttons
+"TRUE","Demo view","ros2ids && ros2ids.kind != \x22SIM\x22 && ros2ids.kind != \x22RELIABILITY\x22 && ros2ids.kind != \x22VIZ\x22","Everything that matters: commands, IDS, sensors, discovery"
+"TRUE","Commands","ros2ids.kind contains \x22CMD\x22","wire, authorized and motor commands"
+"TRUE","Wire","ros2ids.kind == \x22CMD wire\x22","/cmd_vel_raw only: controller and any extra writer"
+"TRUE","Wire vs motors","ros2ids.kind == \x22CMD wire\x22 || ros2ids.kind == \x22CMD motors\x22","What was sent vs what reached the motors"
+"TRUE","Extra writers","ros2ids.topic == \x22/cmd_vel_raw\x22 && ros2ids.writer_n > 1","Commands from anyone other than the first writer"
+"TRUE","Infeasible","ros2ids.infeasible == 1","Commands outside the feasibility limits"
+"TRUE","Discovery","ros2ids.kind == \x22DISCOVERY\x22 && !(ros2ids.event contains \x22alive\x22)","Joins, leaves and endpoint announcements"
+"TRUE","IDS","ros2ids.kind == \x22IDS\x22","Detector output topics"
+"TRUE","All","rtps","Every RTPS packet"
