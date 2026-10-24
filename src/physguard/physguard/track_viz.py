@@ -9,7 +9,9 @@
 # -----------
 # RViz2 visualisation and recovery metrics for the track demo.
 #
-# Publishes (frame: odom)
+# Publishes (frame: parameter 'frame', default odom; the Gazebo bench sets
+# 'world' and feeds this node /ground_truth, so the trail and the deviation
+# metrics come from the true pose, not drifting wheel odometry)
 #   /track/reference  nav_msgs/Path       the oval centreline
 #   /track/markers    MarkerArray         track surface, tolerance band, robot
 #                                         body and heading, coloured trail,
@@ -59,11 +61,12 @@ class TrackViz(Node):
     def __init__(self):
         super().__init__('track_viz')
         for k, v in [('straight', 6.0), ('radius', 2.0), ('tolerance', 0.15),
-                     ('recover_tol', 0.05), ('trail_len', 4000)]:
+                     ('recover_tol', 0.05), ('trail_len', 4000), ('frame', 'odom')]:
             self.declare_parameter(k, v)
         g = lambda n: self.get_parameter(n).value
         self.track = OvalTrack(straight=g('straight'), radius=g('radius'))
         self.tol, self.rtol = float(g('tolerance')), float(g('recover_tol'))
+        self.frame = str(g('frame'))
 
         latched = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
         self.p_path = self.create_publisher(Path, 'track/reference', latched)
@@ -188,7 +191,7 @@ class TrackViz(Node):
     # ---------------- markers ----------------
     def base(self, ns, mid, mtype):
         m = Marker()
-        m.header.frame_id = 'odom'
+        m.header.frame_id = self.frame
         m.header.stamp = self.get_clock().now().to_msg()
         m.ns, m.id, m.type, m.action = ns, mid, mtype, Marker.ADD
         m.pose.orientation.w = 1.0
@@ -196,7 +199,7 @@ class TrackViz(Node):
 
     def publish_static(self):
         path = Path()
-        path.header.frame_id = 'odom'
+        path.header.frame_id = self.frame
         path.header.stamp = self.get_clock().now().to_msg()
         for i in range(0, self.track.N, 5):
             ps = PoseStamped()

@@ -28,5 +28,6 @@ setup(
         'physguard_node = physguard.physguard_node:main',
         'pure_pursuit = physguard.pure_pursuit:main',
         'track_viz = physguard.track_viz:main',
+        'sim_frames = physguard.sim_frames:main',
     ]},
 )

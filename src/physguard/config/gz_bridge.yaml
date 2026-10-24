@@ -1,0 +1,56 @@
+# =============================================================================
+# File        : gz_bridge.yaml
+# Package     : physguard
+# Project     : Cross-Layer Intrusion Detection for ROS 2 Robotic Networks
+# Author      : Shyam Rithin S (RA2311004010308)
+# =============================================================================
+# Description
+# -----------
+# Every ROS <-> Gazebo Harmonic topic the bench uses, in one place.
+# Loaded by ros_gz_bridge's parameter_bridge (config_file:=this).
+#
+#   /clock         gz -> ROS   sim time for every node
+#   /cmd_vel       ROS -> gz   filtered command from the IDS safety filter
+#   /odom          gz -> ROS   wheel odometry (DiffDrive) - the IDS input
+#   /ground_truth  gz -> ROS   true pose (OdometryPublisher) - sim only
+#   /scan          gz -> ROS   gpu_lidar
+#   /joint_states  gz -> ROS   wheel angles for robot_state_publisher
+#
+# /tf is deliberately NOT bridged: sim_frames builds the robot TF from /odom
+# and /ground_truth, so there is exactly one publisher per transform.
+# =============================================================================
+- ros_topic_name: /clock
+  gz_topic_name: /clock
+  ros_type_name: rosgraph_msgs/msg/Clock
+  gz_type_name: gz.msgs.Clock
+  direction: GZ_TO_ROS
+
+- ros_topic_name: /cmd_vel
+  gz_topic_name: /cmd_vel
+  ros_type_name: geometry_msgs/msg/Twist
+  gz_type_name: gz.msgs.Twist
+  direction: ROS_TO_GZ
+
+- ros_topic_name: /odom
+  gz_topic_name: /odom
+  ros_type_name: nav_msgs/msg/Odometry
+  gz_type_name: gz.msgs.Odometry
+  direction: GZ_TO_ROS
+
+- ros_topic_name: /ground_truth
+  gz_topic_name: /ground_truth
+  ros_type_name: nav_msgs/msg/Odometry
+  gz_type_name: gz.msgs.Odometry
+  direction: GZ_TO_ROS
+
+- ros_topic_name: /scan
+  gz_topic_name: /scan
+  ros_type_name: sensor_msgs/msg/LaserScan
+  gz_type_name: gz.msgs.LaserScan
+  direction: GZ_TO_ROS
+
+- ros_topic_name: /joint_states
+  gz_topic_name: /joint_states
+  ros_type_name: sensor_msgs/msg/JointState
+  gz_type_name: gz.msgs.Model
+  direction: GZ_TO_ROS

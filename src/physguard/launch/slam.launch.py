@@ -13,6 +13,11 @@
 # with a map-frame view. No teleoperation is needed: the pure-pursuit controller
 # drives the oval while the perimeter walls and obstacles are mapped.
 #
+# Frames: slam_toolbox owns the odom frame's parent (map->odom), so the bench is
+# started with world_tf:=false and a static identity world->map is added. The
+# robot spawns at the world origin, which is also where the map starts, so
+# world and map coincide and the track markers (drawn in 'world') line up.
+#
 # The IDS detector is left out here so the view is a clean mapping demo; run the
 # IDS bench (gazebo.launch.py) separately when you want the intrusion-detection
 # story. 2D Nav Goal / 2D Pose Estimate tools are available in RViz (they
@@ -47,7 +52,13 @@ def generate_launch_description():
         # Its own RViz is suppressed; we open a map-frame RViz below instead.
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(gazebo_launch),
-            launch_arguments={'rviz': 'false'}.items()),
+            launch_arguments={'rviz': 'false', 'world_tf': 'false'}.items()),
+
+        # world == map (robot and map both start at the origin)
+        Node(package='tf2_ros', executable='static_transform_publisher',
+             name='world_to_map', output='log',
+             arguments=['--frame-id', 'world', '--child-frame-id', 'map'],
+             parameters=[{'use_sim_time': True}]),
 
         # slam_toolbox, started once the world and bridge are up
         TimerAction(period=6.0, actions=[
@@ -57,5 +68,6 @@ def generate_launch_description():
         ]),
 
         Node(package='rviz2', executable='rviz2', name='rviz2',
-             arguments=['-d', slam_rviz], output='log', condition=if_rviz),
+             arguments=['-d', slam_rviz], output='log', condition=if_rviz,
+             parameters=[{'use_sim_time': True}]),
     ])
